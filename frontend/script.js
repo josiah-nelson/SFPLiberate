@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     // Load runtime config (env-driven) then initialize UI
-    fetch('/api/v1/health/config')
+    fetch('/api/v1/config')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
             if (cfg && typeof cfg === 'object') {
