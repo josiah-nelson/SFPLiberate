@@ -39,6 +39,9 @@ class BLEConnectMessage(BaseModel):
     device_address: Optional[str] = Field(
         None, description="Optional device address (auto-discover if not provided)"
     )
+    adapter: Optional[str] = Field(
+        None, description="Optional adapter (e.g., 'hci0'). Uses default when omitted."
+    )
 
 
 class BLEDisconnectMessage(BaseModel):
@@ -80,6 +83,9 @@ class BLEDiscoverMessage(BaseModel):
         None, description="Optional service UUID filter"
     )
     timeout: int = Field(default=5, description="Discovery timeout in seconds", ge=1, le=30)
+    adapter: Optional[str] = Field(
+        None, description="Optional adapter (e.g., 'hci0'). Uses default when omitted."
+    )
 
 
 class BLEConnectedMessage(BaseModel):

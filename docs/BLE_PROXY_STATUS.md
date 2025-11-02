@@ -1,7 +1,7 @@
 # BLE Proxy Implementation Status
 
 **Branch:** `feature/ble-proxy-mode`
-**Status:** 🚧 In Progress (Backend Complete, Frontend Infrastructure Complete)
+**Status:** ✅ Complete (Backend + Frontend Integration)
 
 ## Overview
 
@@ -46,14 +46,21 @@ Adding optional BLE proxy mode to allow iOS/Safari users to access SFP Wizard de
   - Tagged as "ble-proxy" in OpenAPI docs
   - Graceful fallback if bleak not installed
 
-### Frontend (Infrastructure Complete, Integration Pending)
+### Frontend (Complete)
 
 - ✅ **BLE Proxy Client** (`frontend/ble-proxy-client.js`)
-  - Web Bluetooth-compatible API
-  - WebSocket communication
-  - Base64 data encoding
-  - Notification callbacks
-  - ~300 lines of code
+  - Web Bluetooth-compatible API over WebSocket
+  - Base64 encoding for binary payloads
+  - Notification callback multiplexing
+
+- ✅ **Integration in `script.js`**
+  - Auto-detects best mode (Web Bluetooth → Proxy fallback)
+  - Supports manual mode selection (Direct/Proxy)
+  - Unified notification handling and chunked writes
+  - Status indicators updated with connection type
+  - Adapter selection UI (proxy mode) with auto-enumeration via backend
+  - Profile derived via proxy GATT inspection; manual UUID entry removed by design
+  - Save discovered profile to .env via backend (requires docker restart)
 
 - ✅ **HTML Updates** (`frontend/index.html`)
   - Connection mode selector (Auto/Web Bluetooth/Proxy)
@@ -70,36 +77,20 @@ Adding optional BLE proxy mode to allow iOS/Safari users to access SFP Wizard de
 
 ## In Progress 🚧
 
-### Frontend Integration
-
-- ⏳ **script.js Updates** (NOT STARTED)
-  - Connection mode auto-detection
-  - Dual-path connection logic
-  - Mode-aware BLE operations
-  - Status indicator updates
+None (feature implemented); additional hardening/testing welcome.
 
 ## Pending ⏸️
 
 ### Docker Configuration
 
-- ⏸️ **Bluetooth Device Access**
-  - Map host Bluetooth adapter
-  - Add necessary capabilities (CAP_NET_ADMIN)
-  - Environment variables (BLE_PROXY_ENABLED)
-  - docker-compose.yml updates
+- ✅ **Bluetooth Device Access (profile)**
+  - `docker-compose.yml` now includes a `ble-proxy` profile anchor and applies it to the backend service
+  - Adds USB device mapping and `NET_ADMIN` capability
+  - Sets `BLE_PROXY_ENABLED=true`
 
 ### Documentation
 
-- ⏸️ **User Guide**
-  - Setup instructions for proxy mode
-  - Docker Bluetooth configuration
-  - Troubleshooting guide
-  - Browser compatibility matrix
-
-- ⏸️ **README Updates**
-  - BLE proxy feature description
-  - Installation with ble-proxy extra
-  - Connection mode explanation
+- ⏳ User guide and README can be expanded further (proxy mode setup, browser matrix).
 
 ### Testing
 
@@ -141,6 +132,7 @@ poetry run uvicorn app.main:app --reload
 
 - **WS:** `ws://localhost:8000/api/v1/ble/ws`
 - **Docs:** `http://localhost:8000/api/v1/docs` (interactive)
+- **HTTP:** `GET /api/v1/ble/adapters` (list local BT adapters)
 
 ### Message Types
 
@@ -178,23 +170,16 @@ wscat -c ws://localhost:8000/api/v1/ble/ws
 
 ## Estimated Remaining Work
 
-- **Frontend Integration:** 2-4 hours (update script.js)
-- **Docker Configuration:** 1-2 hours
-- **Documentation:** 2-3 hours
-- **Testing:** 2-4 hours (with hardware)
-- **GitHub Releases:** 1-2 hours
-
-**Total:** ~8-15 hours
+- **Hardware Testing:** 2-4 hours
+- **Docs polish:** 1-2 hours
+- **Release prep:** 1-2 hours
 
 ## Next Steps
 
-1. Update `script.js` to use connection mode selector
-2. Implement auto-detection logic
-3. Test with real hardware (if available)
-4. Configure Docker for Bluetooth access
-5. Setup GitHub releases
-6. Write comprehensive documentation
-7. Submit PR when complete
+1. Test with real hardware (proxy + direct)
+2. Polish docs (proxy quickstart, troubleshooting)
+3. Setup releases
+4. Submit PR
 
 ## Notes
 

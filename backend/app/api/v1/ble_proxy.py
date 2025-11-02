@@ -30,9 +30,11 @@ from app.schemas.ble import (
     BLEWriteMessage,
 )
 from app.services.ble_manager import BLENotAvailableError, get_ble_manager
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+settings = get_settings()
 
 
 class BLEProxyHandler:
@@ -124,7 +126,9 @@ class BLEProxyHandler:
         """Handle connect request."""
         try:
             device_info = await self.ble_manager.connect(
-                service_uuid=message.service_uuid, device_address=message.device_address
+                service_uuid=message.service_uuid,
+                device_address=message.device_address,
+                adapter=message.adapter or (settings.ble_proxy_adapter if hasattr(settings, 'ble_proxy_adapter') else None),
             )
 
             response = BLEConnectedMessage(
@@ -174,13 +178,15 @@ class BLEProxyHandler:
     async def handle_subscribe(self, message: BLESubscribeMessage) -> None:
         """Handle subscribe request."""
         try:
-
-            async def notification_callback(char_uuid: str, data: bytes) -> None:
-                """Forward notifications to WebSocket client."""
+            # Define a sync callback that schedules the async send on the event loop.
+            def notification_callback(char_uuid: str, data: bytes) -> None:
+                """Forward notifications to WebSocket client (scheduled)."""
                 response = BLENotificationMessage(
-                    characteristic_uuid=char_uuid, data=base64.b64encode(data).decode("utf-8")
+                    characteristic_uuid=char_uuid,
+                    data=base64.b64encode(data).decode("utf-8"),
                 )
-                await self.send_message(response.model_dump())
+                # Schedule the coroutine to avoid awaiting in a sync callback context
+                asyncio.create_task(self.send_message(response.model_dump()))
 
             await self.ble_manager.subscribe(
                 characteristic_uuid=message.characteristic_uuid, callback=notification_callback
@@ -211,7 +217,9 @@ class BLEProxyHandler:
         """Handle discovery request."""
         try:
             devices = await self.ble_manager.discover_devices(
-                service_uuid=message.service_uuid, timeout=message.timeout
+                service_uuid=message.service_uuid,
+                timeout=message.timeout,
+                adapter=message.adapter or (settings.ble_proxy_adapter if hasattr(settings, 'ble_proxy_adapter') else None),
             )
 
             response = BLEDiscoveredMessage(devices=devices)
@@ -256,3 +264,84 @@ async def ble_proxy_websocket(websocket: WebSocket) -> None:
     """
     handler = BLEProxyHandler(websocket)
     await handler.handle()
+
+
+# HTTP: List available BLE adapters (for proxy mode)
+@router.get("/adapters")
+async def list_ble_adapters() -> list[dict[str, Any]]:
+    """List available BLE adapters via BlueZ (DBus)."""
+    try:
+        from app.services.ble_adapters import list_adapters
+
+        return await list_adapters()
+    except Exception as e:
+        logger.error(f"Adapter listing failed: {e}")
+        return []
+
+
+@router.get("/inspect")
+async def inspect_gatt(device_address: str, adapter: str | None = None) -> dict[str, Any]:
+    """Connect to a device by address and enumerate its GATT layout.
+
+    Returns services and characteristics with properties.
+    """
+    try:
+        manager = get_ble_manager()
+        info = await manager.connect(service_uuid=None, device_address=device_address, adapter=adapter)
+        layout = await manager.enumerate_gatt()
+        await manager.disconnect()
+        return {
+            "device": info,
+            "gatt": layout,
+        }
+    except BLENotAvailableError as e:
+        return {"error": str(e)}
+
+
+@router.post("/profile/env")
+async def save_profile_env(payload: dict[str, str]) -> dict[str, Any]:
+    """Persist SFP profile UUIDs to a bind-mounted .env file.
+
+    Expects JSON: {"service_uuid","write_char_uuid","notify_char_uuid"}
+    Requires that settings.ble_env_path is a writable mount to the host .env.
+    """
+    path = settings.ble_env_path
+    if not path:
+        return {"error": "BLE_ENV_PATH not configured"}
+
+    required = ["service_uuid", "write_char_uuid", "notify_char_uuid"]
+    if any(k not in payload or not payload[k] for k in required):
+        return {"error": "Missing required keys"}
+
+    # Read existing .env (if any), update keys, and write back
+    try:
+        lines: list[str] = []
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except FileNotFoundError:
+            lines = []
+
+        def set_key(key: str, value: str) -> None:
+            nonlocal lines
+            updated = False
+            for i, line in enumerate(lines):
+                if line.startswith(f"{key}="):
+                    lines[i] = f"{key}={value}"
+                    updated = True
+                    break
+            if not updated:
+                lines.append(f"{key}={value}")
+
+        set_key("SFP_SERVICE_UUID", payload["service_uuid"])
+        set_key("SFP_WRITE_CHAR_UUID", payload["write_char_uuid"])
+        set_key("SFP_NOTIFY_CHAR_UUID", payload["notify_char_uuid"]) 
+
+        content = "\n".join(lines) + "\n"
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        return {"ok": True, "path": path, "note": "Restart docker-compose to apply"}
+    except Exception as e:
+        logger.error(f"Failed to write env file: {e}")
+        return {"error": str(e)}

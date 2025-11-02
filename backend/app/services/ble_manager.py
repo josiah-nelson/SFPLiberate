@@ -63,7 +63,7 @@ class BLEManager:
         return self.client is not None and self.client.is_connected
 
     async def discover_devices(
-        self, service_uuid: Optional[str] = None, timeout: int = 5
+        self, service_uuid: Optional[str] = None, timeout: int = 5, adapter: Optional[str] = None
     ) -> list[dict[str, str]]:
         """
         Discover nearby BLE devices.
@@ -82,11 +82,20 @@ class BLEManager:
 
         try:
             if service_uuid:
-                devices = await BleakScanner.discover(
-                    timeout=timeout, service_uuids=[service_uuid]
-                )
+                try:
+                    devices = await BleakScanner.discover(
+                        timeout=timeout, service_uuids=[service_uuid], adapter=adapter
+                    )
+                except TypeError:
+                    # Older bleak without adapter kw
+                    devices = await BleakScanner.discover(
+                        timeout=timeout, service_uuids=[service_uuid]
+                    )
             else:
-                devices = await BleakScanner.discover(timeout=timeout)
+                try:
+                    devices = await BleakScanner.discover(timeout=timeout, adapter=adapter)
+                except TypeError:
+                    devices = await BleakScanner.discover(timeout=timeout)
 
             discovered = []
             for device in devices:
@@ -104,14 +113,14 @@ class BLEManager:
             raise
 
     async def connect(
-        self, service_uuid: str, device_address: Optional[str] = None
+        self, service_uuid: Optional[str] = None, device_address: Optional[str] = None, adapter: Optional[str] = None
     ) -> dict[str, any]:
         """
         Connect to a BLE device.
 
         Args:
-            service_uuid: Service UUID to connect to
-            device_address: Optional specific device address (auto-discover if None)
+            service_uuid: Optional service UUID to connect to (used for discovery when address not given)
+            device_address: Optional specific device address (connect directly when provided)
 
         Returns:
             Dictionary with device info (name, address, services)
@@ -126,10 +135,11 @@ class BLEManager:
         if self.is_connected:
             await self.disconnect()
 
-        # Discover device if address not provided
         if not device_address:
+            if not service_uuid:
+                raise ValueError("Either device_address or service_uuid is required to connect")
             logger.info(f"Auto-discovering device with service {service_uuid}")
-            devices = await self.discover_devices(service_uuid=service_uuid, timeout=10)
+            devices = await self.discover_devices(service_uuid=service_uuid, timeout=10, adapter=adapter)
             if not devices:
                 raise ValueError(f"No devices found with service {service_uuid}")
             device_address = devices[0]["address"]
@@ -137,7 +147,13 @@ class BLEManager:
 
         # Connect to device
         logger.info(f"Connecting to {device_address}...")
-        self.client = BleakClient(device_address, disconnected_callback=self._on_disconnect)
+        try:
+            self.client = BleakClient(
+                device_address, disconnected_callback=self._on_disconnect, adapter=adapter
+            )
+        except TypeError:
+            # Older bleak without adapter kw
+            self.client = BleakClient(device_address, disconnected_callback=self._on_disconnect)
 
         try:
             await self.client.connect()

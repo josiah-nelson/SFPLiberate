@@ -29,6 +29,12 @@
                     <option value="proxy">BLE Proxy (via Backend)</option>
                 </select>
                 <span id="connectionModeHint" style="margin-left: 0.5rem; color: var(--text-muted); font-size: 0.9em;"></span>
+                <div id="proxyAdapterRow" style="margin-top:0.5rem; display:none; align-items:center; gap:0.5rem;">
+                    <label for="proxyAdapterSelect" style="font-weight:bold;">Adapter:</label>
+                    <select id="proxyAdapterSelect" style="padding:0.25rem; min-width:10rem;"></select>
+                    <button id="refreshAdaptersBtn" type="button">Refresh</button>
+                    <span id="proxyAdapterHint" style="color: var(--text-muted); font-size: 0.9em;"></span>
+                </div>
             </div>
             <button id="connectButton">Connect to SFP Wizard</button>
             <div class="status-grid">
@@ -47,7 +53,15 @@
             <p style="margin-bottom: 0.5rem; color: var(--text-muted);">
                 Experimental device discovery. Browser support varies. Safari has limited support.
             </p>
-            <button id="scanButton" onclick="limitedScanTODO()">Scan for Devices (TODO)</button>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem; align-items:center;">
+                <button id="scanButton" onclick="limitedScanTODO()">Scan (Web Bluetooth)</button>
+                <button id="proxyScanButton" onclick="discoverViaProxy()">Discover via Proxy</button>
+                <button id="saveProfileEnvBtn" title="Persist active profile to .env (requires docker restart)" style="margin-left:auto; display:none;">Save as Deployment Defaults (requires docker restart)</button>
+            </div>
+            <div id="proxyDiscovery" class="hidden">
+                <h3>Discovered via Proxy</h3>
+                <ul id="proxyDiscoveryList"></ul>
+            </div>
         </section>
 
         <!-- Section for reading live data from a connected module -->

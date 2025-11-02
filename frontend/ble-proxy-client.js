@@ -169,7 +169,8 @@ class BLEProxyClient {
         await this.sendMessage('connect', {
             type: 'connect',
             service_uuid: serviceUuid,
-            device_address: options.deviceAddress || null
+            device_address: options.deviceAddress || null,
+            adapter: options.adapter || null
         });
 
         // Return device-like object
@@ -265,7 +266,8 @@ class BLEProxyClient {
         return await this.sendMessage('discover', {
             type: 'discover',
             service_uuid: options.serviceUuid || null,
-            timeout: options.timeout || 5
+            timeout: options.timeout || 5,
+            adapter: options.adapter || null
         });
     }
 

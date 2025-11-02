@@ -18,6 +18,7 @@ In Progress / Stubs Present
 - Community listing/import UI: placeholder section in frontend; constant `COMMUNITY_INDEX_URL` awaiting real URL.
 - DDM capture: basic line capture (`ddm:` heuristic) into an in‑memory array for future CSV export.
 - Write operation: explicit placeholder; current code logs that BLE write command is unknown and likely on‑device only.
+ - Public site (Appwrite): plan for invite‑only access with simple per‑user passphrases; integrate submissions/import later.
 
 Next Steps (High Value)
 Frontend
@@ -33,6 +34,10 @@ Frontend
   - Parse DDM lines into structured fields; enable CSV export of time‑series samples.
 - BLE UX and accuracy
   - Keep reads/write semantics aligned with reality: instruct user to trigger reads on device; only add BLE triggers if actually discovered and verified across firmware versions.
+ - iOS/Safari UX polish
+  - Improve guidance banner, add links to Proxy mode instructions and Bluefy, expose minimal troubleshooting.
+ - Replay from artifacts (dev)
+  - Add a developer toggle to replay nRF Connect artifacts and device tar logs to simulate notifications and binary payloads without hardware.
 
 Backend
 - Community import endpoint
@@ -43,10 +48,12 @@ Backend
   - `GET /api/modules/export.zip` containing all blobs plus a manifest.json (name/vendor/model/serial/sha256/size/created_at).
 - Submissions inbox tooling (optional)
   - Add minimal admin endpoints to list/review/delete submissions (for maintainers), or a CLI script.
+ - Adapter enumeration (done)
+  - DBus adapter listing implemented for proxy mode; consider exposing power toggle where safe.
 
 Sidecar Site + Community Modules Repo
-- Stand up GitHub Pages site (MkDocs/Docusaurus) with docs: Overview, Getting Started, BLE notes, FAQ, Safety.
-- Create `SFPLiberate/modules` repo with:
+- Stand up public community site on Appwrite Cloud (invite‑only passphrases). Keep initial scope simple: uploads and browsing.
+- Create `SFPLiberate/modules` repo or Appwrite collections with:
   - `index.json` (versioned schema), `blobs/<sha256>.bin`, CI validation for schema and blob size/hash.
   - Contribution docs describing how maintainers ingest inbox submissions from this app.
 - Publish a stable `COMMUNITY_INDEX_URL` and update the frontend constant.
@@ -64,6 +71,7 @@ Security / Safety / Integrity
 Testing & Tooling
 - Add backend tests for `/api/modules`, `/api/submissions`, and the future `/api/modules/import` and export endpoints.
 - Add lint/type checks to CI for backend (ruff/mypy) and basic link checking for docs.
+ - Add WebSocket smoke test for `/api/v1/ble/ws` (if proxy enabled) and `/api/v1/ble/adapters`.
 
 Known Conflicts or Incorrect Assumptions (to avoid)
 - Placeholder BLE write command strings (e.g., `[POST] /sfp/write/start`) are speculative. Don’t rely on them until verified.
@@ -73,4 +81,3 @@ Backlog / Future Ideas
 - Attestation of community modules (PGP or Sigstore) and trust metadata.
 - Optional local tagging/notes per module and bulk edit operations.
 - Simple in‑app diff/compare between two EEPROM images.
-
