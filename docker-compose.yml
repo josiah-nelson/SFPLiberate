@@ -4,6 +4,17 @@
 
 name: sfpliberate
 
+# Shared BLE proxy config (anchor defined before use)
+x-ble-proxy-config: &ble-proxy-config
+  profiles:
+    - ble-proxy
+  devices:
+    - /dev/bus/usb:/dev/bus/usb
+  cap_add:
+    - NET_ADMIN
+  environment:
+    - BLE_PROXY_ENABLED=true
+
 services:
   backend:
     <<: *ble-proxy-config
@@ -189,15 +200,3 @@ volumes:
     labels:
       - "com.sfpliberate.volume=backend-data"
       - "com.sfpliberate.backup=true"
-
-# Optional profiles for different deployment scenarios
-# Usage: docker compose --profile ble-proxy up
-x-ble-proxy-config: &ble-proxy-config
-  profiles:
-    - ble-proxy
-  devices:
-    - /dev/bus/usb:/dev/bus/usb
-  cap_add:
-    - NET_ADMIN
-  environment:
-    - BLE_PROXY_ENABLED=true

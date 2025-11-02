@@ -333,7 +333,7 @@ services:
     environment:
       - BLE_PROXY_ENABLED=true
       - BLE_PROXY_DEFAULT_TIMEOUT=5
-      # Optional: force a specific adapter (e.g., hci0)
+      # Optional: force a specific adapter (e.g., hci0). Leave empty to use system default adapter.
       - BLE_PROXY_ADAPTER=
     # BlueZ D-Bus socket mounts (commonly required by bleak)
     volumes:

@@ -8,15 +8,12 @@ NOTE: This module requires bleak to be installed:
     poetry install -E ble-proxy
 """
 
-import asyncio
-import base64
 import logging
 from typing import Callable, Optional
 
 try:
     from bleak import BleakClient, BleakScanner
     from bleak.backends.characteristic import BleakGATTCharacteristic
-    from bleak.exc import BleakError
 
     BLEAK_AVAILABLE = True
 except ImportError:
@@ -24,7 +21,6 @@ except ImportError:
     BleakClient = None  # type: ignore
     BleakScanner = None  # type: ignore
     BleakGATTCharacteristic = None  # type: ignore
-    BleakError = Exception  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +60,7 @@ class BLEManager:
 
     async def discover_devices(
         self, service_uuid: Optional[str] = None, timeout: int = 5, adapter: Optional[str] = None
-    ) -> list[dict[str, str]]:
+    ) -> list[dict[str, str | int]]:
         """
         Discover nearby BLE devices.
 
@@ -114,7 +110,7 @@ class BLEManager:
 
     async def connect(
         self, service_uuid: Optional[str] = None, device_address: Optional[str] = None, adapter: Optional[str] = None
-    ) -> dict[str, any]:
+    ) -> dict[str, object]:
         """
         Connect to a BLE device.
 
@@ -306,6 +302,69 @@ class BLEManager:
         """Clean up resources."""
         if self.is_connected:
             await self.disconnect()
+
+    async def enumerate_gatt(self) -> dict[str, object]:
+        """
+        Enumerate the connected device's GATT services and characteristics.
+
+        Returns a dictionary with a list of services, each containing its
+        UUID and a list of characteristics with UUIDs and properties.
+
+        Example:
+        {
+          "services": [
+            {
+              "uuid": "...",
+              "characteristics": [
+                {"uuid": "...", "properties": ["notify", "write-without-response"]},
+                ...
+              ]
+            },
+            ...
+          ]
+        }
+        """
+        if not self.is_connected:
+            raise RuntimeError("Not connected to any device")
+
+        # Ensure services are populated across bleak versions
+        services_collection = None
+        try:
+            # bleak>=0.20 supports awaiting get_services()
+            services_collection = await self.client.get_services()  # type: ignore[func-returns-value]
+        except TypeError:
+            # Older bleak may expose .services after connect
+            services_collection = self.client.services
+
+        services_out: list[dict[str, object]] = []
+
+        if services_collection is None:
+            return {"services": services_out}
+
+        # Iterate through services and characteristics
+        for service in services_collection:
+            chars_out: list[dict[str, object]] = []
+            for char in getattr(service, "characteristics", []) or []:
+                # Properties may be a set/list; normalize to list[str]
+                props = []
+                try:
+                    raw_props = getattr(char, "properties", [])
+                    if isinstance(raw_props, (set, list, tuple)):
+                        props = [str(p) for p in raw_props]
+                    else:
+                        props = [str(raw_props)] if raw_props else []
+                except Exception:
+                    props = []
+                chars_out.append({
+                    "uuid": str(getattr(char, "uuid", "")),
+                    "properties": props,
+                })
+            services_out.append({
+                "uuid": str(getattr(service, "uuid", "")),
+                "characteristics": chars_out,
+            })
+
+        return {"services": services_out}
 
 
 # Singleton instance

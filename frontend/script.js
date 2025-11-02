@@ -61,9 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const supportBanner = ensureSupportBanner();
     const modeSelect = document.getElementById('connectionMode');
     const modeHint = document.getElementById('connectionModeHint');
-    const proxyAdapterRow = document.getElementById('proxyAdapterRow');
-    const proxyAdapterSelect = document.getElementById('proxyAdapterSelect');
-    const proxyAdapterHint = document.getElementById('proxyAdapterHint');
     const refreshAdaptersBtn = document.getElementById('refreshAdaptersBtn');
     const scanButton = document.getElementById('scanButton');
     const proxyScanButton = document.getElementById('proxyScanButton');
@@ -121,9 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(() => {})
         .finally(() => {
             // Recompute hints once config is known
-            if (typeof refreshModeUI === 'function') {
-                try { refreshModeUI(); } catch (_) {}
-            }
+            if (typeof refreshModeUI === 'function') { try { refreshModeUI(); } catch (_) {} }
         });
 
     // Initialize connection mode UI and hints
@@ -256,13 +251,12 @@ function buildProxyWsUrl() {
 }
 
 function updateProxyAdapterVisibility() {
-    if (!proxyAdapterRow) return;
+    const row = document.getElementById('proxyAdapterRow');
+    if (!row) return;
     const selected = document.getElementById('connectionMode').value;
     const show = selected === 'proxy' || (!isWebBluetoothAvailable() && isProxyAvailable());
-    proxyAdapterRow.style.display = show ? 'flex' : 'none';
-    if (show) {
-        loadProxyAdapters();
-    }
+    row.style.display = show ? 'flex' : 'none';
+    if (show) { loadProxyAdapters(); }
 }
 
 async function loadProxyAdapters() {
@@ -273,38 +267,39 @@ async function loadProxyAdapters() {
         const list = await res.json();
         renderAdapters(list);
     } catch (err) {
-        proxyAdapterHint.textContent = 'Adapter list unavailable';
+        const hint = document.getElementById('proxyAdapterHint');
+        if (hint) hint.textContent = 'Adapter list unavailable';
     }
 }
 
 function renderAdapters(list) {
-    if (!proxyAdapterSelect) return;
+    const select = document.getElementById('proxyAdapterSelect');
+    const hint = document.getElementById('proxyAdapterHint');
+    if (!select) return;
     const saved = localStorage.getItem('proxyAdapter') || '';
-    proxyAdapterSelect.innerHTML = '';
+    select.innerHTML = '';
     if (!list || list.length === 0) {
         const opt = document.createElement('option');
         opt.value = '';
         opt.textContent = '(default)';
-        proxyAdapterSelect.appendChild(opt);
-        proxyAdapterHint.textContent = 'No adapters found; using default.';
+        select.appendChild(opt);
+        if (hint) hint.textContent = 'No adapters found; using default.';
         return;
     }
     const defaultOpt = document.createElement('option');
     defaultOpt.value = '';
     defaultOpt.textContent = '(default)';
-    proxyAdapterSelect.appendChild(defaultOpt);
+    select.appendChild(defaultOpt);
     list.forEach(a => {
         const opt = document.createElement('option');
         opt.value = a.name;
         const addrTxt = a.address ? ` ${a.address}` : '';
         opt.textContent = `${a.name}${addrTxt}${a.powered === false ? ' (off)' : ''}`;
-        proxyAdapterSelect.appendChild(opt);
+        select.appendChild(opt);
     });
-    if (saved) proxyAdapterSelect.value = saved;
-    proxyAdapterSelect.onchange = () => {
-        localStorage.setItem('proxyAdapter', proxyAdapterSelect.value);
-    };
-    proxyAdapterHint.textContent = 'Select a local Bluetooth adapter (optional).';
+    if (saved) select.value = saved;
+    select.onchange = () => { localStorage.setItem('proxyAdapter', select.value); };
+    if (hint) hint.textContent = 'Select a local Bluetooth adapter (optional).';
 }
 
 function ensureSupportBanner() {
@@ -351,9 +346,10 @@ function updateConnectAvailability() {
 function updateProfileActions() {
     const p = loadActiveProfile();
     const hasProfile = !!(p && p.serviceUuid && p.writeCharUuid && p.notifyCharUuid);
-    if (typeof saveProfileEnvBtn !== 'undefined' && saveProfileEnvBtn) {
+    const btn = document.getElementById('saveProfileEnvBtn');
+    if (btn) {
         const show = hasProfile && appConfig.ble_proxy_enabled && !appConfig.public_mode;
-        saveProfileEnvBtn.style.display = show ? '' : 'none';
+        btn.style.display = show ? '' : 'none';
     }
 }
 
@@ -840,7 +836,8 @@ async function discoverViaProxy() {
 async function connectViaProxyAddress(deviceAddress) {
     try {
         const adapter = (document.getElementById('proxyAdapterSelect') || {}).value || undefined;
-        const inspRes = await fetch(`/api/v1/ble/inspect?${new URLSearchParams({ device_address: deviceAddress, ...(adapter?{adapter}:{}), }).toString()}`);
+        const params = { device_address: deviceAddress, ...(adapter ? { adapter: adapter } : {}) };
+        const inspRes = await fetch(`/api/v1/ble/inspect?${new URLSearchParams(params).toString()}`);
         if (!inspRes.ok) throw new Error('Inspection failed');
         const insp = await inspRes.json();
         const profile = selectProfileFromGatt(insp.gatt);
@@ -1067,6 +1064,158 @@ async function uploadToCommunityTODO() {
     } catch (err) {
         log(`Community upload failed: ${err}`, true);
     }
+}
+
+// --- 4a. Library Save/Delete & Write (Restored) ---
+
+/**
+ * Saves the currently read module data to the backend.
+ */
+async function saveCurrentModule() {
+    const name = document.getElementById('moduleNameInput').value;
+    if (!name) {
+        alert("Please enter a friendly name for the module.");
+        return;
+    }
+    if (!rawEepromData) {
+        alert("No SFP data has been read yet.");
+        return;
+    }
+
+    log("Saving module to backend...");
+
+    // Convert ArrayBuffer to Base64 string to send as JSON
+    const base64Data = bufferToBase64(rawEepromData);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/modules`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, eeprom_data_base64: base64Data })
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.detail || "Failed to save.");
+        }
+
+        if (result.status === 'duplicate') {
+            log(`Duplicate detected (SHA256). Using existing ID: ${result.id}`);
+        } else {
+            log(`Module saved with ID: ${result.id}`);
+        }
+        document.getElementById('moduleNameInput').value = "";
+        loadSavedModules(); // Refresh the list
+
+    } catch (error) {
+        log(`Failed to save module: ${error}`, true);
+    }
+}
+
+/**
+ * Deletes a module from the backend database.
+ */
+async function deleteModule(moduleId) {
+    if (!confirm("Are you sure you want to delete this module?")) {
+        return;
+    }
+
+    log(`Deleting module ${moduleId}...`);
+    try {
+        const response = await fetch(`${API_BASE_URL}/modules/${moduleId}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.detail || "Failed to delete.");
+        }
+        log(result.message);
+        loadSavedModules();
+    } catch (error) {
+        log(`Failed to delete: ${error}`, true);
+    }
+}
+
+/**
+ * Fetches a module's binary data and writes it to the SFP.
+ * Uses the discovered BLE write protocol: [POST] /sif/write
+ */
+async function writeSfp(moduleId) {
+    if (!bleDevice || !gattServer || !isConnectedNow()) {
+        alert("Please connect to the SFP Wizard first.");
+        return;
+    }
+
+    const confirmed = confirm(
+        "⚠️ WARNING: Writing EEPROM data can permanently damage your SFP module if incorrect data is used.\n\n" +
+        "Before proceeding:\n" +
+        "✓ Ensure you have backed up the original module data\n" +
+        "✓ Verify this is the correct module profile\n" +
+        "✓ Use test/non-critical modules first\n\n" +
+        "Do you want to continue?"
+    );
+    if (!confirmed) { log("Write operation cancelled by user."); return; }
+
+    log(`Preparing to write module ${moduleId}...`);
+
+    try {
+        // 1. Fetch the binary EEPROM data from our backend
+        log("Fetching EEPROM data from backend...");
+        const response = await fetch(`${API_BASE_URL}/modules/${moduleId}/eeprom`);
+        if (!response.ok) { throw new Error("Module binary data not found."); }
+        const eepromData = await response.arrayBuffer();
+        log(`Retrieved ${eepromData.byteLength} bytes of EEPROM data.`);
+
+        // 2. Send the write initiation command to the SFP Wizard
+        log("Sending write initiation command: [POST] /sif/write");
+        await sendBleCommand("[POST] /sif/write");
+
+        // 3. Wait for acknowledgment (best-effort)
+        log("Waiting for device acknowledgment...");
+        try { await waitForMessage("SIF write start", 5000); log("Device ready to receive EEPROM data."); }
+        catch (error) { log(`Warning: ${error.message}. Proceeding anyway...`, true); }
+
+        // 4. Chunk and send the binary data
+        const totalChunks = Math.ceil(eepromData.byteLength / BLE_WRITE_CHUNK_SIZE);
+        log(`Writing ${eepromData.byteLength} bytes in ${totalChunks} chunks...`);
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * BLE_WRITE_CHUNK_SIZE;
+            const end = Math.min(start + BLE_WRITE_CHUNK_SIZE, eepromData.byteLength);
+            const chunk = eepromData.slice(start, end);
+            try {
+                await writeCharacteristic.writeValueWithoutResponse(chunk);
+                if ((i + 1) % 10 === 0 || i === totalChunks - 1) {
+                    const progress = Math.round(((i + 1) / totalChunks) * 100);
+                    log(`Write progress: ${progress}% (${i + 1}/${totalChunks} chunks)`);
+                }
+                if (BLE_WRITE_CHUNK_DELAY_MS > 0) { await new Promise(r => setTimeout(r, BLE_WRITE_CHUNK_DELAY_MS)); }
+            } catch (chunkError) {
+                throw new Error(`Failed to write chunk ${i + 1}/${totalChunks}: ${chunkError}`);
+            }
+        }
+
+        log("All data chunks sent successfully.");
+        log("Waiting for write completion confirmation...");
+        try { await Promise.race([waitForMessage("SIF write stop", 10000), waitForMessage("SIF write complete", 10000)]); log("✓ Write operation completed!", false); }
+        catch (error) { log(`Warning: ${error.message}. Write may have completed anyway.`, true); log("✓ Write operation likely completed (no confirmation received)", false); }
+        log("⚠️ IMPORTANT: Verify the write by reading the module back and comparing data.");
+        alert(
+            "Write operation completed!\n\n" +
+            "NEXT STEPS:\n" +
+            "1. Read the module back using the Read button\n" +
+            "2. Compare the data to verify successful write\n" +
+            "3. Test the module in your equipment"
+        );
+    } catch (error) {
+        log(`Failed to write SFP: ${error}`, true);
+        alert(`Write operation failed: ${error.message || error}`);
+    }
+}
+
+// Utility: ArrayBuffer -> base64
+function bufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) { binary += String.fromCharCode(bytes[i]); }
+    return window.btoa(binary);
 }
 
 async function loadCommunityModulesTODO() {
