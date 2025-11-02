@@ -70,7 +70,7 @@ SELECT id, name, vendor, model, created_at FROM sfp_modules;
 - **BLE broadcasts data**: Device sends human-readable logs (`sysmon: ... sfp:[x]`) and binary EEPROM dumps over BLE characteristics for capture
 - **Commands are speculative**: Text commands like `[POST] /sfp/write/start` in code are **guesses**—not verified. Write functionality requires reverse-engineering the actual BLE protocol from official app
 - **Frontend uses Web Bluetooth API** (`navigator.bluetooth`) to connect and subscribe to notifications
-- **Safari limitations**: Limited Web Bluetooth support; code includes fallbacks (`acceptAllDevices` when UUID filtering fails)
+- **Safari/iOS**: NO Web Bluetooth support (as of Safari 18 / iOS 18). Users must use Chrome/Edge on desktop or Bluefy browser on iOS
 
 ### Data Storage & Deduplication
 - Backend stores modules in SQLite with SHA-256 checksum (unique index on `sha256` column)
@@ -84,7 +84,7 @@ SELECT id, name, vendor, model, created_at FROM sfp_modules;
 - **`script.js`**: BLE state machine, notification handler, SFF-8472 EEPROM parser, API client
   - `handleNotifications()`: Core dispatcher—heuristic text vs binary detection for incoming BLE data
   - `parseAndDisplaySfpData()`: Client-side SFF-8472 parser (vendor @ bytes 20-36, model @ 40-56, serial @ 68-84)
-  - Safari compatibility: `acceptAllDevices` fallback, `DataView → Uint8Array` conversion
+  - Browser compatibility: `acceptAllDevices` fallback for some browsers, `DataView → Uint8Array` conversion for data processing
   - **IMPORTANT**: BLE UUIDs (`SFP_SERVICE_UUID`, `WRITE_CHAR_UUID`, `NOTIFY_CHAR_UUID`) are placeholders—must be discovered via nRF Connect and configured before use
 - **`index.html`**: Static UI with status indicators (`bleStatus`, `sfpStatus`), module library list, placeholder community sections
 - **`style.css`**: Minimalist CSS styling
@@ -163,15 +163,23 @@ FastAPI docs auto-generated at: `http://localhost:8080/api/docs`
 ## Browser Compatibility
 
 ### Supported Browsers
-- **Primary**: Chrome, Edge (Chromium-based)
-- **Secondary**: Safari (limited Web Bluetooth support)
-- **Not Supported**: Firefox (no Web Bluetooth API), iOS/iPadOS Safari
+- **Primary**: Chrome, Edge, Opera (Chromium-based browsers with Web Bluetooth API)
+- **iOS Workaround**: Bluefy – Web BLE Browser (App Store) - provides full Web Bluetooth support on iOS
+- **NOT Supported**: Safari (macOS/iOS), Firefox
 
-### Safari-Specific Handling
-- Always convert `DataView` to `Uint8Array` before processing (Safari quirk in `handleNotifications()`)
-- Provide `acceptAllDevices` fallback when UUID filtering fails (see `connectToDevice()` try/catch)
-- Feature detection via `isWebBluetoothAvailable()` and `isSafari()` helpers disables UI gracefully
-- macOS Safari: Enable Web Bluetooth in Develop → Experimental Features if available
+### Safari / iOS Status (Updated 2024)
+**Safari does NOT support Web Bluetooth API** - neither on macOS nor iOS, as of Safari 18 / iOS 18.
+
+- **Apple's Position**: "Not Considering" - declined to implement due to privacy/fingerprinting concerns
+- **No Experimental Flags**: There are no hidden settings or experimental features to enable it
+- **iOS Workaround**: Use "Bluefy – Web BLE Browser" from the App Store (third-party browser with Web BLE support)
+- **macOS Workaround**: Use Chrome, Edge, or Opera instead
+
+### Browser Detection & Fallbacks
+- `isWebBluetoothAvailable()` checks for API availability before enabling UI
+- `isSafari()` and `isIOS()` helpers provide appropriate error messages
+- UI gracefully disables with clear instructions when Web Bluetooth is unavailable
+- `acceptAllDevices` fallback for browsers that reject custom UUID filters (not for Safari - API doesn't exist)
 
 ## Database Schema Evolution
 

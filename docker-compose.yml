@@ -1,26 +1,202 @@
-version: "3.8"
+# Docker Compose file for SFPLiberate
+# Compose Spec (no version field needed for v2.40+)
+# https://docs.docker.com/compose/compose-file/
+
+name: sfpliberate
+
+# Shared BLE proxy config (anchor defined before use)
+x-ble-proxy-config: &ble-proxy-config
+  profiles:
+    - ble-proxy
+  devices:
+    - /dev/bus/usb:/dev/bus/usb
+  cap_add:
+    - NET_ADMIN
+  environment:
+    - BLE_PROXY_ENABLED=true
 
 services:
   backend:
+    <<: *ble-proxy-config
     build:
       context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+        - POETRY_VERSION=${POETRY_VERSION:-1.8.5}
+        - BUILD_DATE=${BUILD_DATE}
+        - VCS_REF=${VCS_REF}
+        - VERSION=${VERSION:-dev}
+      target: production
+      # Enable BuildKit for better caching and performance
+      cache_from:
+        - type=registry,ref=ghcr.io/josiah-nelson/sfpliberate-backend:cache
+      cache_to:
+        - type=inline
+    image: sfpliberate-backend:${VERSION:-latest}
     container_name: sfpliberate-backend
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Environment variables
     environment:
       - DATABASE_FILE=/app/data/sfp_library.db
+      - SUBMISSIONS_DIR=/app/data/submissions
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      # BLE Proxy (optional)
+      - BLE_PROXY_ENABLED=${BLE_PROXY_ENABLED:-false}
+      - BLE_PROXY_DEFAULT_TIMEOUT=${BLE_PROXY_DEFAULT_TIMEOUT:-5}
+      - BLE_PROXY_ADAPTER=${BLE_PROXY_ADAPTER:-}
+
+    # Volumes
     volumes:
-      - backend_data:/app/data
+      - backend_data:/app/data:rw
+      # Bind-mount .env to allow backend to persist profile UUIDs (self-hosted)
+      - ./.env:/app/.env:rw
+      # Optional: D-Bus socket for BlueZ (required by bleak on many distros)
+      # Comment these lines if your host does not have these sockets.
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 100M
+
+    # Network
+    networks:
+      - sfp-internal
+
+    # Expose port internally (not to host)
     expose:
       - "80"
+
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost/api/v1/health').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.cache
+
+    # Labels
+    labels:
+      - "com.sfpliberate.service=backend"
+      - "com.sfpliberate.description=FastAPI backend for SFP module management"
+      - "com.sfpliberate.version=${VERSION:-dev}"
 
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NGINX_VERSION=${NGINX_VERSION:-1.27-alpine}
+        - BUILD_DATE=${BUILD_DATE}
+        - VCS_REF=${VCS_REF}
+        - VERSION=${VERSION:-dev}
+      target: production
+      cache_from:
+        - type=registry,ref=ghcr.io/josiah-nelson/sfpliberate-frontend:cache
+      cache_to:
+        - type=inline
+    image: sfpliberate-frontend:${VERSION:-latest}
     container_name: sfpliberate-frontend
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Depends on backend with health condition
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+        restart: true
+
+    # Environment
+    environment:
+      - BACKEND_URL=http://backend
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+
+    # Ports exposed to host
     ports:
-      - "8080:80"
+      - "${HOST_PORT:-8080}:80"
+
+    # Network
+    networks:
+      - sfp-internal
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+
+    # Labels
+    labels:
+      - "com.sfpliberate.service=frontend"
+      - "com.sfpliberate.description=NGINX frontend with reverse proxy"
+      - "com.sfpliberate.version=${VERSION:-dev}"
+      - "traefik.enable=true"
+      - "traefik.http.routers.sfpliberate.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.sfpliberate.entrypoints=websecure"
+      - "traefik.http.routers.sfpliberate.tls.certresolver=letsencrypt"
+
+networks:
+  sfp-internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24
+    labels:
+      - "com.sfpliberate.network=internal"
 
 volumes:
   backend_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}
+    labels:
+      - "com.sfpliberate.volume=backend-data"
+      - "com.sfpliberate.backup=true"

@@ -36,6 +36,22 @@ class Settings(BaseSettings):
     enable_community_import: bool = False
     community_index_url: str = ""
 
+    # BLE Proxy
+    ble_proxy_enabled: bool = False
+    ble_proxy_default_timeout: int = 5
+    ble_proxy_adapter: str | None = None
+
+    # Public mode (hide proxy UI and advanced options by default)
+    public_mode: bool = False
+
+    # Optional default SFP profile via env (self-hosted convenience)
+    sfp_service_uuid: str | None = None
+    sfp_write_char_uuid: str | None = None
+    sfp_notify_char_uuid: str | None = None
+
+    # Path to bind-mounted env file for persistence (self-hosted)
+    ble_env_path: str | None = "/app/.env"
+
 
 @lru_cache
 def get_settings() -> Settings:
