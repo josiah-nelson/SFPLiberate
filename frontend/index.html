@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SFP Wizard Community Tool</title>
     <link rel="stylesheet" href="style.css">
+    <script src="ble-proxy-client.js"></script>
     <script src="script.js" defer></script>
 </head>
 
@@ -20,12 +21,23 @@
         <!-- Section for connecting to the device -->
         <section class="card">
             <h2>1. Connection</h2>
+            <div style="margin-bottom: 1rem;">
+                <label for="connectionMode" style="font-weight: bold;">Connection Mode:</label>
+                <select id="connectionMode" style="margin-left: 0.5rem; padding: 0.25rem;">
+                    <option value="auto">Auto (detect best option)</option>
+                    <option value="web-bluetooth">Web Bluetooth (Direct)</option>
+                    <option value="proxy">BLE Proxy (via Backend)</option>
+                </select>
+                <span id="connectionModeHint" style="margin-left: 0.5rem; color: var(--text-muted); font-size: 0.9em;"></span>
+            </div>
             <button id="connectButton">Connect to SFP Wizard</button>
             <div class="status-grid">
                 <span>BLE Status:</span>
                 <span id="bleStatus" class="status-light" data-status="disconnected">Disconnected</span>
                 <span>SFP Status:</span>
                 <span id="sfpStatus" class="status-light" data-status="unknown">Unknown</span>
+                <span>Connection:</span>
+                <span id="connectionType" class="status-light" data-status="unknown">Not Connected</span>
             </div>
         </section>
 
