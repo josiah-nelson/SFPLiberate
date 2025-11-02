@@ -17,7 +17,6 @@ x-ble-proxy-config: &ble-proxy-config
 
 services:
   backend:
-    <<: *ble-proxy-config
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -27,7 +26,6 @@ services:
         - BUILD_DATE=${BUILD_DATE}
         - VCS_REF=${VCS_REF}
         - VERSION=${VERSION:-dev}
-      target: production
       # Enable BuildKit for better caching and performance
       cache_from:
         - type=registry,ref=ghcr.io/josiah-nelson/sfpliberate-backend:cache
@@ -60,10 +58,6 @@ services:
       # Comment these lines if your host does not have these sockets.
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro
-      - type: tmpfs
-        target: /tmp
-        tmpfs:
-          size: 100M
 
     # Network
     networks:
@@ -85,7 +79,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost/api/v1/health').read()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost/api/modules').read()"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -114,7 +108,6 @@ services:
         - BUILD_DATE=${BUILD_DATE}
         - VCS_REF=${VCS_REF}
         - VERSION=${VERSION:-dev}
-      target: production
       cache_from:
         - type=registry,ref=ghcr.io/josiah-nelson/sfpliberate-frontend:cache
       cache_to:

@@ -1,21 +1,53 @@
-# Use an official lightweight Python image
+# Multi-stage Docker build for production-ready backend
+
+# Builder stage
+FROM python:3.11-slim as builder
+
+WORKDIR /build
+
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.7.1
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Export requirements with BLE proxy extras (for faster subsequent builds)
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --extras ble-proxy
+
+# Production stage
 FROM python:3.11-slim
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the requirements file first to leverage Docker cache
-COPY requirements.txt .
+# Install system dependencies for BLE (BlueZ, D-Bus)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    bluez \
+    libglib2.0-0 \
+    libdbus-1-3 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install the dependencies
+# Copy requirements from builder
+COPY --from=builder /build/requirements.txt .
+
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your application code
-COPY . .
+# Copy application code
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini .
 
-# Tell Docker the container will listen on port 80
+# Create data directory
+RUN mkdir -p /app/data
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:80/health')" || exit 1
+
+# Expose port
 EXPOSE 80
 
-# Command to run the application using uvicorn
-# --host 0.0.0.0 makes it accessible from outside the container
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+# Run migrations and start server
+CMD alembic upgrade head && \
+    uvicorn app.main:app --host 0.0.0.0 --port 80

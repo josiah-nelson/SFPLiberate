@@ -9,11 +9,11 @@ import structlog
 def setup_logging(log_level: str = "INFO", json_logs: bool = True) -> None:
     """Configure structured logging with structlog."""
 
-    # Configure standard library logging
+    # Configure standard library logging (convert level to uppercase)
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
-        level=log_level,
+        level=log_level.upper(),
     )
 
     # Configure structlog processors
