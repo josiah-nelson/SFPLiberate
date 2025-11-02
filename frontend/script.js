@@ -7,8 +7,9 @@ const NOTIFY_CHAR_UUID = "ZZZZZZZZ-ZZZZ-ZZZZ-ZZZZ-ZZZZZZZZZZZZ"; // For receivin
 // The frontend is reverse-proxied to the backend at /api by NGINX
 const API_BASE_URL = "/api";
 // Public community index (to be hosted on GitHub Pages)
-// TODO: Replace with the actual published URL for the modules index.json
-const COMMUNITY_INDEX_URL = "https://example.com/SFPLiberate/modules/index.json"; // TODO
+// TODO: Create the community modules repository and publish to GitHub Pages
+// Expected URL pattern: https://username.github.io/SFPLiberate-modules/index.json
+const COMMUNITY_INDEX_URL = "https://josiah-nelson.github.io/SFPLiberate-modules/index.json";
 
 // --- Global State ---
 let bleDevice = null;
