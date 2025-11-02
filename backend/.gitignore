@@ -16,3 +16,11 @@ env/
 .idea/
 .vscode/
 .DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Poetry
+poetry.lock

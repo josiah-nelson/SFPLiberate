@@ -1,8 +1,8 @@
 """SQLAlchemy models for SFP modules."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
-from sqlalchemy import String, LargeBinary, Index
+from sqlalchemy import Index, LargeBinary, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -24,7 +24,7 @@ class SFPModule(Base):
     serial: Mapped[str | None] = mapped_column(String(100))
     eeprom_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
 
     __table_args__ = (Index("idx_vendor_model", "vendor", "model"),)
 
