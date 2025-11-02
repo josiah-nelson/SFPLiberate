@@ -118,7 +118,7 @@ When adding columns to `sfp_modules` table:
 - **SFF-8472 Spec**: EEPROM layout standard (vendor @ bytes 20-36, model @ 40-56, serial @ 68-84)
 - **Web Bluetooth API**: Browser support varies—Chrome/Edge preferred, Safari experimental
 - **Planned GitHub Repos**: `SFPLiberate/modules` (community index + blobs), `SFPLiberate/site` (docs via MkDocs/Docusaurus)
-- **Official Hardware**: Ubiquiti UACC‑SFP‑Wizard (ESP32-class SFP programmer, not affiliated with this project)
+- **Official Hardware**: Ubiquiti UACC-SFP-Wizard (ESP32-class SFP programmer, not affiliated with this project)
 
 ## Documentation Files
 - `README.md`: User-facing overview, current features, roadmap
