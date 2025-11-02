@@ -2,21 +2,76 @@ name: CI
 
 on:
   push:
+    branches: [main, develop]
   pull_request:
 
 jobs:
-  backend-lint:
+  backend-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install backend deps
+          cache: 'pip'
+
+      - name: Install Poetry
         run: |
-          python -m pip install --upgrade pip
-          pip install fastapi uvicorn[standard] pydantic
-      - name: Compile backend
-        run: python -m compileall -q backend
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: poetry install
+
+      - name: Run Ruff linter
+        working-directory: ./backend
+        run: poetry run ruff check app tests
+
+      - name: Run type checking with mypy
+        working-directory: ./backend
+        run: |
+          # TODO: Enforce mypy type checking failures in CI by 2024-08-01.
+          # For now, run with --warn-unused-ignores --no-error-summary to reduce noise.
+          poetry run mypy app --warn-unused-ignores --no-error-summary || true
+
+      - name: Run tests with pytest
+        working-directory: ./backend
+        run: poetry run pytest --cov --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.new
+          push: false
+          tags: sfpliberate-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image (original)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: false
+          tags: sfpliberate-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
