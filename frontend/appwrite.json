@@ -1,59 +1,61 @@
 {
-  "$schema": "https://appwrite.io/schemas/appwrite.json",
-  "projectId": "${APPWRITE_PROJECT_ID}",
-  "projectName": "SFPLiberate",
-  "settings": {
-    "services": {
-      "account": true,
-      "avatars": false,
-      "databases": false,
-      "locale": false,
-      "health": false,
-      "storage": false,
-      "teams": false,
-      "users": false,
-      "functions": false,
-      "messaging": false
+    "$schema": "https://appwrite.io/schemas/appwrite.json",
+    "projectId": "${APPWRITE_PROJECT_ID}",
+    "projectName": "SFPLiberate",
+    "settings": {
+        "services": {
+            "account": true,
+            "avatars": false,
+            "databases": false,
+            "locale": false,
+            "health": false,
+            "storage": false,
+            "teams": false,
+            "users": false,
+            "functions": false,
+            "messaging": false
+        }
+    },
+    "functions": [
+        {
+            "$id": "sfpliberate-frontend",
+            "name": "SFPLiberate Frontend",
+            "runtime": "node-22.0",
+            "path": "out",
+            "entrypoint": "",
+            "execute": [
+                "any"
+            ],
+            "enabled": true,
+            "logging": true,
+            "timeout": 15,
+            "scopes": [],
+            "providerRepositoryId": "",
+            "providerBranch": "",
+            "providerSilentMode": false,
+            "providerRootDirectory": "frontend"
+        }
+    ],
+    "deployment": {
+        "type": "static",
+        "source": "out",
+        "destination": "/",
+        "buildCommand": "npm run build",
+        "installCommand": "npm ci --legacy-peer-deps",
+        "environmentVariables": {
+            "DEPLOYMENT_MODE": "appwrite",
+            "NEXT_PUBLIC_DEPLOYMENT_MODE": "appwrite",
+            "NEXT_PUBLIC_ENABLE_AUTH": "true",
+            "NEXT_PUBLIC_ENABLE_WEB_BLUETOOTH": "true",
+            "NEXT_PUBLIC_ENABLE_BLE_PROXY": "true",
+            "NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURES": "true",
+            "NEXT_TELEMETRY_DISABLED": "1",
+            "NODE_ENV": "production"
+        }
+    },
+    "meta": {
+        "version": "1.0.0",
+        "description": "SFPLiberate - Web Bluetooth SFP Module Manager",
+        "repository": "https://github.com/josiah-nelson/SFPLiberate"
     }
-  },
-  "functions": [
-    {
-      "$id": "sfpliberate-frontend",
-      "name": "SFPLiberate Frontend",
-      "runtime": "node-22.0",
-      "path": "out",
-      "entrypoint": "",
-      "execute": ["any"],
-      "enabled": true,
-      "logging": true,
-      "timeout": 15,
-      "scopes": [],
-      "providerRepositoryId": "",
-      "providerBranch": "",
-      "providerSilentMode": false,
-      "providerRootDirectory": "frontend"
-    }
-  ],
-  "deployment": {
-    "type": "static",
-    "source": "out",
-    "destination": "/",
-    "buildCommand": "npm run build",
-    "installCommand": "npm ci --legacy-peer-deps",
-    "environmentVariables": {
-      "DEPLOYMENT_MODE": "appwrite",
-      "NEXT_PUBLIC_DEPLOYMENT_MODE": "appwrite",
-      "NEXT_PUBLIC_ENABLE_AUTH": "true",
-      "NEXT_PUBLIC_ENABLE_WEB_BLUETOOTH": "true",
-      "NEXT_PUBLIC_ENABLE_BLE_PROXY": "true",
-      "NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURES": "true",
-      "NEXT_TELEMETRY_DISABLED": "1",
-      "NODE_ENV": "production"
-    }
-  },
-  "meta": {
-    "version": "1.0.0",
-    "description": "SFPLiberate - Web Bluetooth SFP Module Manager",
-    "repository": "https://github.com/josiah-nelson/SFPLiberate"
-  }
 }

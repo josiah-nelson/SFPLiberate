@@ -8,10 +8,13 @@ This project is built on a modern web stack, using your browser's **Web Bluetoot
 
 ## Operating Modes
 
-`SFPLiberate` supports two connection/hosting modes:
+`SFPLiberate` supports multiple connection and deployment modes:
+
+### BLE Connection Modes
 
 - **Direct (Web Bluetooth in Browser)** — Default. Your browser connects directly to the SFP Wizard via the Web Bluetooth API (Chrome/Edge/Opera, Bluefy on iOS). No special backend access to Bluetooth is required.
 - **BLE Proxy (via Backend)** — Optional. For environments where Web Bluetooth is not available (e.g., Safari/iOS), the backend acts as a BLE proxy over WebSocket. The browser connects to the backend, which talks to the local Bluetooth adapter on the host. Adapter selection is supported in the UI when proxy mode is active.
+- **Standalone BLE Proxy** — New! Lightweight Docker container (~345MB) that runs locally on your machine, enabling iOS/Safari users to access SFP Wizard devices without self-hosting the full stack. Perfect for use with publicly-hosted UIs. See [ble-proxy-service/README.md](./ble-proxy-service/README.md) for details.
 
 ## The Goal
 
@@ -43,21 +46,22 @@ This tool is the result of reverse‑engineering the SFP Wizard's Bluetooth LE (
     
     -   **Frontend (Browser):** A Next.js 16 app (TypeScript + shadcn/ui) that uses the **Web Bluetooth API** (`navigator.bluetooth`) to connect directly to the SFP Wizard and capture logs/data (including EEPROM dumps) for parsing and saving.
         
-    -   **Backend (Docker):** A lightweight **Python (FastAPI)** server that runs in a Docker container. Its only job is to provide a REST API for storing and retrieving module data from an **SQLite** database.
+    -   **Backend (Docker):** A lightweight **Python (FastAPI)** server that runs in a Docker container. Provides REST API for module library with automatic database selection (SQLite for standalone, Appwrite for cloud).
         
 
 This architecture means the complex BLE communication happens securely in your browser, while your module library is safely managed and stored by a robust backend. When Proxy mode is enabled, the backend exposes a WebSocket for BLE operations on a local adapter.
 
 ### Deployment Modes
 
-- **Public Server (no proxy):** Core functionality and public database access (read/submit) with client‑side BLE only. Expected concurrency: ~2–5 concurrent users. Deployed without Bluetooth passthrough. No proxy features are exposed.
-- **Self‑Hosted (LAN, optional proxy):** Primary mode. A single Docker Compose stack that serves the UI, manages a private local database (SQLite), and optionally exposes BLE Proxy over WebSocket for Safari/iOS users on the same LAN. Designed to work fully air‑gapped (no Internet access required). No auth by default on LAN.
+- **Public Server (Appwrite + Standalone BLE Proxy):** Recommended for iOS/Safari users. UI hosted on Appwrite Cloud, module library in Appwrite database, users run a lightweight Docker container locally for BLE communication. Expected concurrency: ~2–5 concurrent users. Invite-only access with `admin` and `alpha` roles. See [docs/PUBLIC_DEPLOYMENT.md](./docs/PUBLIC_DEPLOYMENT.md) and [docs/APPWRITE_DATABASE.md](./docs/APPWRITE_DATABASE.md).
+- **Self‑Hosted (Full Stack):** Primary mode for advanced users. A single Docker Compose stack that serves the UI, manages a private local database (SQLite), and optionally exposes BLE Proxy over WebSocket for Safari/iOS users on the same LAN. Designed to work fully air‑gapped (no Internet access required). No auth by default on LAN. See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for setup guide.
 
 ### Security & Privacy
 
 - The app handles non‑sensitive, generic device data (SFP vendor/model/serial and binary EEPROM contents). Security is low‑priority by design.
-- The planned public community site will be invite‑only with per‑user passphrases (hosted on Appwrite Cloud). Submissions will be moderated.
-- Self‑hosted deployments are intended for trusted LANs. If you expose the stack publicly, add reverse proxy auth, rate limiting, and TLS as needed.
+- **Public deployment** uses Appwrite authentication with invite-only access. Two roles: `admin` (full settings access) and `alpha` (early access users). BLE proxy settings are admin-only to prevent misconfiguration. See [docs/PUBLIC_DEPLOYMENT.md](./docs/PUBLIC_DEPLOYMENT.md).
+- **Standalone BLE Proxy** runs on user's local machine only (localhost binding). No internet exposure, no authentication needed. See [ble-proxy-service/README.md](./ble-proxy-service/README.md).
+- **Self‑hosted** deployments are intended for trusted LANs. If you expose the stack publicly, add reverse proxy auth, rate limiting, and TLS as needed.
 
 ## Current Features & Functionality
 
@@ -149,11 +153,19 @@ This project is fully functional for capturing and archiving profiles. Writing s
   - **No experimental flags available** - previous documentation suggesting this was incorrect
 - **Firefox** - No Web Bluetooth support
 
-### iOS Users
-Safari does not support Web Bluetooth. You can:
-1. Use the **BLE Proxy** mode (if your self‑hosted server has Bluetooth and Proxy is enabled).
-2. Or download **Bluefy – Web BLE Browser** from the App Store for direct BLE.
-3. Alternatively, use a desktop computer with Chrome/Edge/Opera.
+### iOS/Safari Users
+Safari does not support Web Bluetooth. You have three options:
+
+1. **Standalone BLE Proxy** (Recommended) — Run a lightweight Docker container locally and connect to a public/Appwrite-hosted UI:
+   ```bash
+   docker run -d --name sfp-ble-proxy --network host \
+     ghcr.io/sfpliberate/ble-proxy:latest
+   ```
+   See [ble-proxy-service/README.md](./ble-proxy-service/README.md) for full setup guide.
+
+2. **Bluefy Browser** — Download **Bluefy – Web BLE Browser** from the App Store for direct BLE support on iOS.
+
+3. **Self-Hosted BLE Proxy** — If running the full stack, enable BLE Proxy mode in your backend (see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)).
 
 ## Build & Run Instructions
 

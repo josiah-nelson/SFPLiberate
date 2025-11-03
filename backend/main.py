@@ -13,7 +13,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # Import our custom modules
-import database_manager
+import database_factory as database_manager  # Adapter pattern: auto-selects SQLite or Appwrite
 import sfp_parser
 
 # Constants

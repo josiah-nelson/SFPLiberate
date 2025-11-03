@@ -151,7 +151,9 @@ async function connectDirectMode() {
 }
 
 async function connectViaProxy() {
-  const wsUrl = buildDefaultProxyWsUrl('/api/v1/ble/ws');
+  // Check for custom proxy URL in localStorage (admin-configured)
+  const customProxyUrl = typeof window !== 'undefined' ? localStorage.getItem('sfp_ble_proxy_url') : null;
+  const wsUrl = customProxyUrl || buildDefaultProxyWsUrl('/api/v1/ble/ws');
   logLine(`Connecting via BLE Proxy (${wsUrl})...`);
   const proxy = new BLEProxyClient(wsUrl);
   await proxy.connect();

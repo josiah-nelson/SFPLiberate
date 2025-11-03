@@ -1,4 +1,14 @@
-SFPLiberate – Consolidated TODOs and Next Steps
+SFPLibCompleted (don't re‑plan)
+- Single‑origin app: NGINX serves frontend and proxies `/api` to backend via docker‑compose.
+- Frontend uses relative API base (`/api`).
+- Safari‑aware Web Bluetooth: fallback to `acceptAllDevices`, robust DataView → Uint8Array decoding.
+- Dev CORS middleware enabled on backend for local iteration.
+- Local DB duplicate detection: SHA‑256 checksum stored and enforced with a unique index.
+- Community submissions without GitHub sign‑in: POST `/api/submissions` stores `eeprom.bin` + `metadata.json` in an inbox.
+- Sidecar site planning document added: `docs/SIDECAR_SITE_TODO.md`.
+- **Standalone BLE Proxy Service**: Complete service (Issue #46) with 345MB Docker container, multi-arch CI/CD, and comprehensive docs.
+- **Auth System (Appwrite)**: Complete RBAC implementation with admin/alpha roles, login flow, protected routes, and BLE proxy settings.
+- **Appwrite Database Integration**: Backend now supports both SQLite (standalone) and Appwrite Cloud Database (public deployment) with automatic mode selection via `DEPLOYMENT_MODE` env var. Appwrite uses dedicated Storage service for EEPROM binaries.Consolidated TODOs and Next Steps
 
 Overview
 - Scope: Companion app for Ubiquiti’s SFP Wizard to capture broadcasts over BLE, build a reusable module library, optionally write saved profiles (if safe/possible), add historic DDM logging, and support a community repo of module data, compatibility notes, and statistics.
@@ -18,7 +28,6 @@ In Progress / Stubs Present
 - Community listing/import UI: placeholder section in frontend; constant `COMMUNITY_INDEX_URL` awaiting real URL.
 - DDM capture: basic line capture (`ddm:` heuristic) into an in‑memory array for future CSV export.
 - Write operation: explicit placeholder; current code logs that BLE write command is unknown and likely on‑device only.
- - Public site (Appwrite): plan for invite‑only access with simple per‑user passphrases; integrate submissions/import later.
 
 Next Steps (High Value)
 Frontend

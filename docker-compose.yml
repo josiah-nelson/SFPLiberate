@@ -39,8 +39,19 @@ services:
 
     # Environment variables
     environment:
+      # Deployment Mode (standalone=SQLite, appwrite=Cloud Database)
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-standalone}
+      # SQLite configuration (standalone mode only)
       - DATABASE_FILE=/app/data/sfp_library.db
       - SUBMISSIONS_DIR=/app/data/submissions
+      # Appwrite configuration (appwrite mode only)
+      - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
+      - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY:-}
+      - APPWRITE_DATABASE_ID=${APPWRITE_DATABASE_ID:-sfp_library}
+      - APPWRITE_COLLECTION_ID=${APPWRITE_COLLECTION_ID:-sfp_modules}
+      - APPWRITE_BUCKET_ID=${APPWRITE_BUCKET_ID:-sfp_eeprom_data}
+      # Application settings
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=${ENVIRONMENT:-production}
@@ -79,7 +90,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost/api/modules').read()"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost/api/modules').read()" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -153,7 +164,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/" ]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 pydantic
 slowapi
+appwrite>=6.0.0

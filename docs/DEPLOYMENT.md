@@ -4,6 +4,15 @@ Complete guide for deploying SFPLiberate in production and development environme
 
 ---
 
+## Deployment Options
+
+This guide covers **self-hosted full-stack deployment**. For other deployment modes:
+
+- **Public Server (Appwrite + Standalone BLE Proxy)**: See [PUBLIC_DEPLOYMENT.md](./PUBLIC_DEPLOYMENT.md) for iOS/Safari users with Appwrite-hosted UI
+- **Standalone BLE Proxy Only**: See [../ble-proxy-service/README.md](../ble-proxy-service/README.md) for lightweight BLE proxy container
+
+---
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
