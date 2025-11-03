@@ -160,7 +160,9 @@ Week 12:    Phase 7 - Polish (Stories 24-25)
 ### Current UI (as implemented)
 
 - Dashboard (`/`): modern Cards with Connection status, BLE control, and an Activity panel using shadcn Tabs (Log / DDM / Events).
-- Modules (`/modules`): module library table with write confirmation dialog.
+- Unified SFP Discovery: “Discover SFP and Connect” prioritizes direct Web Bluetooth (scanning devices whose name contains “sfp”, harvesting advertised service UUIDs, reopening the chooser with optionalServices, inferring notify/write, and saving the profile), with a silent fallback to proxy discovery when required.
+- Manual options: Direct chooser (unfiltered), Quick SFP Connect (explicit scan → chooser → infer), and Proxy Discovery (adapters + scan + connect-by-address).
+- Modules (`/modules`): module library table with search/sort/pagination and write confirmation dialog.
 
 ### Standalone Mode (Docker)
 ```bash
