@@ -77,7 +77,11 @@ npm run dev
 
 Pages:
 - `/` Dashboard (Connection, BLE Control, Activity Tabs)
-- `/modules` Module Library (write confirmation)
+- `/modules` Module Library (search/sort/pagination, write confirmation)
+
+Discovery & Web Bluetooth
+- The Dashboard includes “Discover SFP and Connect” which first tries Web Bluetooth Scanning to detect devices named “sfp”, infer service/write/notify UUIDs, and connect directly; if scanning is unavailable, it falls back to proxy discovery/connection.
+- Web Bluetooth requires a secure context (HTTPS or http://localhost). The app includes a banner that explains precise reasons when direct mode is blocked (secure context, navigator.bluetooth presence, adapter availability).
 
 ### Database Access
 ```bash

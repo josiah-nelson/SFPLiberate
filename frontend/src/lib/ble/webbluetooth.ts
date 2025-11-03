@@ -19,6 +19,13 @@ export async function requestDeviceWithFallback(serviceUuid: string) {
   }
 }
 
+export async function requestAnyDeviceChooser() {
+  // Open the native chooser without service filters. Note: accessing services will still
+  // require declaring optionalServices ahead of time, so this is for selection only.
+  // @ts-expect-error Web Bluetooth typings not included by default
+  return await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+}
+
 export async function connectDirect(profile: SfpProfile) {
   const device = await requestDeviceWithFallback(profile.serviceUuid);
   device.addEventListener('gattserverdisconnected', () => {
@@ -78,4 +85,16 @@ export async function writeChunks(
 export function isWebBluetoothAvailable(): boolean {
   // @ts-expect-error Web Bluetooth typings not included by default
   return !!(navigator && navigator.bluetooth && typeof navigator.bluetooth.requestDevice === 'function');
+}
+
+export function isSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+}
+
+export function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1);
 }

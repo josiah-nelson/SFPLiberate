@@ -6,11 +6,15 @@ import { connect, requestSfpRead, saveCurrentModule, listModules, connectViaProx
 import { getBleState, subscribe } from '@/lib/ble/store';
 import { ProxyDiscovery } from '@/components/ble/ProxyDiscovery';
 import { ConnectionStatus } from '@/components/ble/ConnectionStatus';
+import { DirectDiscovery } from '@/components/ble/DirectDiscovery';
 import { loadActiveProfile, saveActiveProfile } from '@/lib/ble/profile';
 import { Button } from '@/registry/new-york-v4/ui/button';
 import { Input } from '@/registry/new-york-v4/ui/input';
 import { Label } from '@/registry/new-york-v4/ui/label';
+import { Alert, AlertDescription } from '@/registry/new-york-v4/ui/alert';
+import { isIOS, isSafari, isWebBluetoothAvailable } from '@/lib/ble/webbluetooth';
 import { toast } from 'sonner';
+import { detectBluetoothSupport } from '@/lib/ble/support';
 
 export function ConnectPanel() {
   const [mode, setMode] = useState<ConnectionMode>('auto');
@@ -21,10 +25,22 @@ export function ConnectPanel() {
   const [wrt, setWrt] = useState('');
   const [ntf, setNtf] = useState('');
   const [proxyAddr, setProxyAddr] = useState('');
+  const [support, setSupport] = useState<{ summary: string; reasons: string[] } | null>(null);
 
   useEffect(() => {
     // Load module list initially (non-blocking)
     listModules().then(setModules).catch(() => {});
+    // Run a smoke test for Web Bluetooth environment capabilities
+    detectBluetoothSupport().then((res) => {
+      const points = [
+        `Secure Context: ${res.secureContext ? 'yes' : 'no'}`,
+        `Loopback Host: ${res.loopbackHost ? 'yes' : 'no'}`,
+        `navigator.bluetooth: ${res.hasNavigatorBluetooth ? 'present' : 'missing'}`,
+        `requestDevice: ${res.hasRequestDevice ? 'present' : 'missing'}`,
+        `availability: ${res.availability === null ? 'unknown' : res.availability ? 'available' : 'unavailable'}`,
+      ].join(' · ');
+      setSupport({ summary: points, reasons: res.reasons });
+    }).catch((error) => console.error('Failed to detect Bluetooth support:', error));
     const p = loadActiveProfile();
     if (p) {
       setSvc(p.serviceUuid);
@@ -134,6 +150,26 @@ export function ConnectPanel() {
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
+      <div>
+        <Alert>
+          <AlertDescription>
+            {support ? (
+              <>
+                <div className="mb-1">Web Bluetooth environment check:</div>
+                <div className="text-xs text-neutral-500">{support.summary}</div>
+                {support.reasons.length > 0 && (
+                  <ul className="mt-2 list-disc pl-5 text-xs">
+                    {support.reasons.map((r, i) => (<li key={i}>{r}</li>))}
+                  </ul>
+                )}
+                {support.reasons.length === 0 && (
+                  <div className="mt-2 text-xs text-emerald-600">Looks good. Prefer Web Bluetooth or Auto mode.</div>
+                )}
+              </>
+            ) : 'Checking Web Bluetooth support…'}
+          </AlertDescription>
+        </Alert>
+      </div>
       <ConnectionModeSelector value={mode} onChange={setMode} />
       <div className="flex items-center gap-2">
         <Button onClick={onConnect} disabled={busy} id="connectButton">
@@ -170,6 +206,10 @@ export function ConnectPanel() {
             ))}
           </ul>
         </div>
+      </div>
+      <div>
+        <strong>Direct Discovery</strong>
+        <DirectDiscovery />
       </div>
       <div>
         <strong>Proxy Discovery</strong>

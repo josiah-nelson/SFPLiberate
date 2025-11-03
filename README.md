@@ -207,12 +207,12 @@ This project is built to run with a single command:
     _(Note: We use port `8080` mapped to Next.js port `3000` inside the container to avoid conflicts with local servers)._ 
     
 4.  **Connect and Go!**
-    
-    -   Choose Connection Mode (Auto/Web Bluetooth/Proxy) and click "Connect to SFP Wizard".
-        
-    -   Select your device from the popup.
-        
-    -   Start reading and building your library!
+
+- Click “Discover SFP and Connect”. The app will:
+  1) Try Web Bluetooth Scanning to find devices named like “sfp”, harvest service UUIDs, reopen the chooser with the right permissions, infer notify/write, save the profile, and connect directly.
+  2) If scanning isn’t supported (or UUIDs aren’t advertised), fall back to proxy discovery and connect via backend.
+
+- You can also use “Scan (Open Chooser)” (unfiltered chooser) and “Proxy Discovery” manually.
         
 
 ### Development

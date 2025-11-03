@@ -162,10 +162,10 @@ services:
     # Security options
     security_opt:
       - no-new-privileges:true
-    # Next.js may write runtime caches; keep writable
-    read_only: false
+    read_only: true
     tmpfs:
       - /tmp
+      - /app/.next
 
     # Labels
     labels:

@@ -3,6 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/registry/new-york-v4/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/registry/new-york-v4/ui/table';
 import { Button } from '@/registry/new-york-v4/ui/button';
+import { Input } from '@/registry/new-york-v4/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/registry/new-york-v4/ui/select';
+import { Checkbox } from '@/registry/new-york-v4/ui/checkbox';
+import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, flexRender, type ColumnDef, type SortingState, type VisibilityState } from '@tanstack/react-table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/registry/new-york-v4/ui/alert-dialog';
 import { toast } from 'sonner';
 import { features } from '@/lib/features';
@@ -20,6 +24,10 @@ type ModuleRow = {
 export default function ModulesPage() {
   const [rows, setRows] = useState<ModuleRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'id', desc: true }]);
+  const [pageSize, setPageSize] = useState(10);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const base = features.api.baseUrl;
 
@@ -51,6 +59,64 @@ export default function ModulesPage() {
     }
   };
 
+  const filtered = rows.filter((m) => {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return (
+      String(m.id).includes(q) ||
+      (m.vendor || '').toLowerCase().includes(q) ||
+      (m.model || '').toLowerCase().includes(q) ||
+      (m.serial || '').toLowerCase().includes(q)
+    );
+  });
+
+  const columns = useMemo<ColumnDef<ModuleRow>[]>(
+    () => [
+      { accessorKey: 'id', header: 'ID', cell: (info) => `#${info.getValue<number>()}` },
+      { accessorKey: 'vendor', header: 'Vendor' },
+      { accessorKey: 'model', header: 'Model' },
+      { accessorKey: 'serial', header: 'Serial' },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="default">Write</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Write module #{row.original.id} to device?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Writing EEPROM can permanently damage your module if incorrect data is used. Make sure you have a backup and the correct profile is selected.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onWrite(row.original.id)}>Write</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ),
+      },
+    ],
+    []
+  );
+
+  const table = useReactTable({
+    data: filtered,
+    columns,
+    state: { sorting, columnVisibility },
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+  useEffect(() => {
+    table.setPageSize(pageSize);
+  }, [pageSize, table]);
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <div className="mb-6 flex items-center justify-between">
@@ -68,60 +134,92 @@ export default function ModulesPage() {
           <CardDescription>Write to device or inspect details</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <Input
+              placeholder="Search modules (id, vendor, model, serial)"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                table.setPageIndex(0);
+              }}
+              className="max-w-sm"
+            />
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-3 mr-2 text-sm">
+                <div className="flex items-center gap-1">
+                  <Checkbox id="col-vendor" checked={table.getColumn('vendor')?.getIsVisible() ?? true} onCheckedChange={() => table.getColumn('vendor')?.toggleVisibility()} />
+                  <label htmlFor="col-vendor">Vendor</label>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Checkbox id="col-model" checked={table.getColumn('model')?.getIsVisible() ?? true} onCheckedChange={() => table.getColumn('model')?.toggleVisibility()} />
+                  <label htmlFor="col-model">Model</label>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Checkbox id="col-serial" checked={table.getColumn('serial')?.getIsVisible() ?? true} onCheckedChange={() => table.getColumn('serial')?.toggleVisibility()} />
+                  <label htmlFor="col-serial">Serial</label>
+                </div>
+              </div>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="w-[110px]"><SelectValue placeholder="Rows" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 / page</SelectItem>
+                  <SelectItem value="25">25 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[80px]">ID</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Serial</TableHead>
-                  <TableHead className="w-[160px]">Actions</TableHead>
+                  {table.getHeaderGroups().map((hg) => (
+                    hg.headers.map((header) => (
+                      <TableHead key={header.id} className={header.id === 'id' ? 'w-[80px] cursor-pointer' : 'cursor-pointer'} onClick={header.column.getToggleSortingHandler()}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.length === 0 && (
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-neutral-500">Loading…</TableCell>
+                  </TableRow>
+                )}
+                {!loading && table.getRowModel().rows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-neutral-500">
-                      {loading ? 'Loading…' : 'No modules saved yet.'}
+                      No modules found.
                     </TableCell>
                   </TableRow>
                 )}
-                {rows.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell>#{m.id}</TableCell>
-                    <TableCell>{m.vendor || '—'}</TableCell>
-                    <TableCell>{m.model || '—'}</TableCell>
-                    <TableCell>{m.serial || '—'}</TableCell>
-                    <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="default">
-                            Write
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Write module #{m.id} to device?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Writing EEPROM can permanently damage your module if incorrect data is used. Make sure you have a backup and the correct profile is selected.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onWrite(m.id)}>Write</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          </div>
+          <div className="mt-3 flex items-center justify-end gap-2 text-sm text-neutral-500">
+            <span>
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+              Prev
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+              Next
+            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
