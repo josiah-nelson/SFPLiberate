@@ -90,10 +90,10 @@ export class ESPHomeWebSocketClient {
     string,
     { resolve: (value: any) => void; reject: (reason: any) => void }
   >();
-  private messageId = 0;
 
   // Device info
   private deviceAddress: string | null = null;
+  private deviceName: string | null = null;
   private serviceUUID: string | null = null;
   private notifyCharUUID: string | null = null;
   private writeCharUUID: string | null = null;
@@ -182,6 +182,7 @@ export class ESPHomeWebSocketClient {
     this.send(message);
     this.deviceConnected = false;
     this.deviceAddress = null;
+    this.deviceName = null;
     this.notificationCallbacks.clear();
   }
 
@@ -240,6 +241,7 @@ export class ESPHomeWebSocketClient {
   getDeviceInfo() {
     return {
       address: this.deviceAddress,
+      name: this.deviceName,
       serviceUUID: this.serviceUUID,
       notifyCharUUID: this.notifyCharUUID,
       writeCharUUID: this.writeCharUUID,
@@ -263,6 +265,8 @@ export class ESPHomeWebSocketClient {
     }
     this.connected = false;
     this.deviceConnected = false;
+    this.deviceAddress = null;
+    this.deviceName = null;
     this.notificationCallbacks.clear();
     this.pendingResolvers.clear();
   }
@@ -311,6 +315,7 @@ export class ESPHomeWebSocketClient {
 
     this.deviceConnected = true;
     this.deviceAddress = message.device_address;
+    this.deviceName = message.device_name || null;
     this.serviceUUID = message.service_uuid;
     this.notifyCharUUID = message.notify_char_uuid;
     this.writeCharUUID = message.write_char_uuid;

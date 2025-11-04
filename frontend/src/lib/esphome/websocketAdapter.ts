@@ -204,7 +204,7 @@ export class ESPHomeAdapter {
     return new ESPHomeDevice(
       this.client,
       options.macAddress,
-      undefined, // Device name not available from adapter
+      info.name || undefined,
       info.serviceUUID,
       info.notifyCharUUID,
       info.writeCharUUID
