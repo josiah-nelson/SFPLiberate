@@ -6,7 +6,7 @@
     "license": "MIT",
     "engines": {
         "node": ">=24.11.0",
-        "npm": ">=11.6.2"
+        "npm": ">=11.6.1"
     },
     "scripts": {
         "dev": "next dev --turbopack",
@@ -70,7 +70,6 @@
         "react-resizable-panels": "^3.0.6",
         "recharts": "^3.3.0",
         "rimraf": "^6.1.0",
-        "shadcn": "^3.5.0",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.3.1",
         "ts-morph": "^27.0.2",
@@ -105,5 +104,6 @@
     "overrides": {
         "@types/react": "19.2.2",
         "@types/react-dom": "19.2.2"
-    }
+    },
+    "packageManager": "npm@11.6.1"
 }
