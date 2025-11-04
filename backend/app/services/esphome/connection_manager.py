@@ -128,7 +128,7 @@ class ConnectionManager:
             # Subscribe to notifications if callback provided
             if notification_callback:
                 await self._subscribe_notifications(
-                    client, mac_address, notify_handle, notification_callback
+                    client, mac_address, notify_handle, notify_char_uuid, notification_callback
                 )
 
             # Store connection
@@ -292,6 +292,7 @@ class ConnectionManager:
         client: "APIClient",
         mac_address: str,
         notify_handle: int,
+        notify_char_uuid: str,
         callback: Callable,
     ) -> None:
         """
@@ -301,6 +302,7 @@ class ConnectionManager:
             client: ESPHome API client
             mac_address: Device MAC address
             notify_handle: Characteristic handle (not UUID)
+            notify_char_uuid: Characteristic UUID to send to the frontend
             callback: Function to call on notifications
         """
         logger.info(f"Subscribing to notifications from handle {notify_handle} on {mac_address}")
@@ -315,21 +317,20 @@ class ConnectionManager:
                         # Convert list[int] to bytes if needed
                         if isinstance(data, list):
                             data = bytes(data)
-                        # Pass handle as string for compatibility with callback expecting UUID
-                        callback(str(notify_handle), data)
+                        # Pass characteristic UUID to frontend, not handle
+                        callback(notify_char_uuid, data)
                     except Exception as e:
                         logger.error(f"Error in notification callback: {e}", exc_info=True)
 
-            # Subscribe to GATT notifications using handle
+            # Register the callback to receive notifications from the device
+            await client.subscribe_bluetooth_gatt_notifications(on_notification)
+
+            # Enable notifications on the characteristic
             await client.bluetooth_gatt_notify(
                 address=mac_address,
                 handle=notify_handle,
                 enable=True,
             )
-
-            # Note: The on_notification callback needs to be registered separately
-            # with subscribe_bluetooth_gatt_notifications if available in aioesphomeapi
-            # For now, this enables notifications on the characteristic
 
             logger.info(f"Subscribed to notifications from handle {notify_handle}")
 
