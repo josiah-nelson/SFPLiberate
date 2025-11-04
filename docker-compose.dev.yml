@@ -23,6 +23,9 @@ services:
       # Mount .env for live config changes
       - ./.env:/app/.env:rw
 
+    ports:
+      - "${BACKEND_HOST_PORT:-8081}:80"
+
     # Development environment variables
     environment:
       - LOG_LEVEL=debug
@@ -31,13 +34,14 @@ services:
       - WATCHFILES_FORCE_POLLING=true
       # Enable hot-reload
       - UVICORN_RELOAD=true
+      - PORT=80
 
     # Override command for development with auto-reload
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app 
              --host 0.0.0.0 
-             --port 80 
+             --port ${PORT:-80} 
              --reload 
              --reload-dir /app/app
              --log-level debug"
@@ -77,15 +81,18 @@ services:
       - ./frontend/tsconfig.json:/app/tsconfig.json:ro
       - ./frontend/tailwind.config.ts:/app/tailwind.config.ts:ro
       - ./frontend/postcss.config.mjs:/app/postcss.config.mjs:ro
-      # Node modules volume for better performance
-      - frontend_node_modules:/app/node_modules
-      - frontend_next:/app/.next
+    tmpfs:
+      - /app/.next
 
     # Development environment
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
       - WATCHPACK_POLLING=true
+      - BACKEND_URL=http://backend:80
+
+    ports:
+      - "${HOST_PORT:-8080}:3000"
 
     # Override command for development with hot-reload
     command: npm run dev
@@ -107,16 +114,8 @@ services:
       retries: 2
       start_period: 5s
 
-    # Expose additional ports for debugging
-    ports:
-      - "${HOST_PORT:-8080}:3000"
-      # Next.js Turbopack devtools (optional)
-      # - "9229:9229"
+    # In bridge mode, expose the dev server via HOST_PORT (defaults to 8080).
 
 volumes:
   backend_data_dev:
-    driver: local
-  frontend_node_modules:
-    driver: local
-  frontend_next:
     driver: local

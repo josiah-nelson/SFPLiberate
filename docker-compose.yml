@@ -10,16 +10,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile.new
       args:
-        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.14}
         - POETRY_VERSION=${POETRY_VERSION:-1.8.5}
         - BUILD_DATE=${BUILD_DATE}
         - VCS_REF=${VCS_REF}
         - VERSION=${VERSION:-dev}
       # Enable BuildKit for better caching and performance
-      cache_from:
-        - type=registry,ref=ghcr.io/josiah-nelson/sfpliberate-backend:cache
-      cache_to:
-        - type=inline
     image: sfpliberate-backend:${VERSION:-latest}
     container_name: sfpliberate-backend
 
@@ -47,16 +43,14 @@ services:
       # Bind-mount .env to allow backend to persist profile UUIDs (self-hosted)
       - ./.env:/app/.env:rw
 
-    # Network
-    # Note: For ESPHome proxy to work, backend needs to reach LAN.
-    # Comment out 'networks' and use 'network_mode: host' when using ESPHome
-    # networks:
-    #   - sfp-internal
-    network_mode: host
+    # Publish the API to the host so the frontend (bridge networking by default) can proxy without
+    # an intermediate reverse-proxy container. Override BACKEND_HOST_PORT if needed.
+    ports:
+      - "${BACKEND_HOST_PORT:-8081}:80"
 
-    # Expose port internally (not to host) - not needed in host mode
-    # expose:
-    #   - "80"
+    # Network
+    networks:
+      - sfp-internal
 
     # Resource limits (adjust based on your needs)
     deploy:
@@ -98,10 +92,6 @@ services:
         - BUILD_DATE=${BUILD_DATE}
         - VCS_REF=${VCS_REF}
         - VERSION=${VERSION:-dev}
-      cache_from:
-        - type=registry,ref=ghcr.io/josiah-nelson/sfpliberate-frontend:cache
-      cache_to:
-        - type=inline
     image: sfpliberate-frontend:${VERSION:-latest}
     container_name: sfpliberate-frontend
 
@@ -117,19 +107,14 @@ services:
     # Environment
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-production}
-      # Backend URL used for Next.js rewrites in standalone mode
-      - BACKEND_URL=http://localhost
+      # Next.js rewrites target the backend via docker internal DNS by default
+      - BACKEND_URL=http://backend:80
       # Note: Deployment mode is AUTO-DETECTED by frontend
       # Standalone mode when APPWRITE_SITE_* variables are absent (default here)
-      - PORT=3000
+      - PORT=${FRONTEND_PORT:-3000}
 
-    # Network - use host mode to reach backend on host network
-    network_mode: host
-    # In host mode, frontend binds directly to port 3000 on host
-    # Access via reverse-proxy service on port 8080
-
-    # networks:
-    #   - sfp-internal
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
 
     # Resource limits
     deploy:
@@ -167,62 +152,6 @@ services:
       - "traefik.http.routers.sfpliberate.entrypoints=websecure"
       - "traefik.http.routers.sfpliberate.tls.certresolver=letsencrypt"
       - "traefik.http.services.sfpliberate.loadbalancer.server.port=3000"
-
-  reverse-proxy:
-    image: nginx:alpine
-    container_name: sfpliberate-reverse-proxy
-    restart: unless-stopped
-
-    depends_on:
-      frontend:
-        condition: service_healthy
-        restart: true
-
-    # Expose port 8080 to host
-    ports:
-      - "${HOST_PORT:-8080}:80"
-
-    # Bridge network to connect to host services
-    network_mode: bridge
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-    # Simple nginx config to proxy to frontend on host
-    volumes:
-      - type: tmpfs
-        target: /var/cache/nginx
-      - type: tmpfs
-        target: /var/run
-
-    command: |
-      sh -c 'echo "
-      server {
-        listen 80;
-        server_name localhost;
-
-        location / {
-          proxy_pass http://host.docker.internal:3000;
-          proxy_http_version 1.1;
-          proxy_set_header Upgrade \$$http_upgrade;
-          proxy_set_header Connection \"upgrade\";
-          proxy_set_header Host \$$host;
-          proxy_set_header X-Real-IP \$$remote_addr;
-          proxy_set_header X-Forwarded-For \$$proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto \$$scheme;
-        }
-      }
-      " > /etc/nginx/conf.d/default.conf && nginx -g "daemon off;"'
-
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
-
-    labels:
-      - "com.sfpliberate.service=reverse-proxy"
-      - "com.sfpliberate.description=Nginx reverse proxy for port 8080 access"
 
 networks:
   sfp-internal:

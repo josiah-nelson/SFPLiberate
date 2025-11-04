@@ -18,6 +18,21 @@ import {
 export class ESPHomeCharacteristic implements GattLikeCharacteristic {
   private notificationListeners: Array<(ev: { target: { value: DataView } }) => void> = [];
 
+  private toArrayBuffer(data: ArrayBufferLike | Uint8Array): ArrayBuffer {
+    if (data instanceof Uint8Array) {
+      if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength && data.buffer instanceof ArrayBuffer) {
+        return data.buffer;
+      }
+      return data.slice().buffer;
+    }
+
+    if (data instanceof ArrayBuffer) {
+      return data;
+    }
+
+    return new Uint8Array(data).slice().buffer;
+  }
+
   constructor(
     public uuid: UUID,
     private client: ESPHomeWebSocketClient,
@@ -25,21 +40,21 @@ export class ESPHomeCharacteristic implements GattLikeCharacteristic {
     private isWriteChar: boolean
   ) {}
 
-  async writeValue(data: ArrayBuffer | Uint8Array): Promise<void> {
+  async writeValue(data: ArrayBufferLike | Uint8Array): Promise<void> {
     if (!this.isWriteChar) {
       throw new Error(`Characteristic ${this.uuid} is not writable`);
     }
 
-    const buffer = data instanceof Uint8Array ? data.buffer : data;
+    const buffer = this.toArrayBuffer(data);
     await this.client.writeCharacteristic(this.uuid, buffer, true);
   }
 
-  async writeValueWithoutResponse(data: ArrayBuffer | Uint8Array): Promise<void> {
+  async writeValueWithoutResponse(data: ArrayBufferLike | Uint8Array): Promise<void> {
     if (!this.isWriteChar) {
       throw new Error(`Characteristic ${this.uuid} is not writable`);
     }
 
-    const buffer = data instanceof Uint8Array ? data.buffer : data;
+    const buffer = this.toArrayBuffer(data);
     await this.client.writeCharacteristic(this.uuid, buffer, false);
   }
 

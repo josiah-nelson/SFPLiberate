@@ -193,18 +193,23 @@ export class BLEProxyClient {
           getPrimaryService: async (_uuid: UUID) => ({
             getCharacteristic: async (charUuid: UUID): Promise<GattLikeCharacteristic> => ({
               uuid: charUuid,
-              writeValue: async (data: ArrayBuffer | Uint8Array) => {
-                await self.writeCharacteristic(charUuid, new Uint8Array(data as ArrayBuffer));
+              writeValue: async (data: ArrayBufferLike | Uint8Array) => {
+                const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+                await self.writeCharacteristic(charUuid, bytes, true);
               },
-              writeValueWithoutResponse: async (data: ArrayBuffer | Uint8Array) => {
-                await self.writeCharacteristic(charUuid, new Uint8Array(data as ArrayBuffer), false);
+              writeValueWithoutResponse: async (data: ArrayBufferLike | Uint8Array) => {
+                const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+                await self.writeCharacteristic(charUuid, bytes, false);
               },
               startNotifications: async () => {
                 await self.subscribe(charUuid);
                 return {
                   addEventListener: (_ev: 'characteristicvaluechanged', cb: (ev: { target: { value: DataView } }) => void) => {
                     self.notificationCallbacks.set(charUuid, (_uuid, data) => {
-                      cb({ target: { value: new DataView(data.buffer) } });
+                      const buffer = data.byteOffset === 0 && data.byteLength === data.buffer.byteLength
+                        ? data.buffer
+                        : data.slice().buffer;
+                      cb({ target: { value: new DataView(buffer) } });
                     });
                   },
                 } as any;

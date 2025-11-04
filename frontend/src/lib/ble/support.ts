@@ -11,7 +11,8 @@ export type BluetoothSupport = {
 export async function detectBluetoothSupport(): Promise<BluetoothSupport> {
   const reasons: string[] = [];
   const secureContext = typeof window !== 'undefined' ? !!window.isSecureContext : false;
-  const host = typeof location !== 'undefined' ? location.hostname : '';
+  const currentLocation = typeof window !== 'undefined' ? window.location : undefined;
+  const host = currentLocation?.hostname ?? '';
   const loopbackHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
   const hasNavigatorBluetooth = typeof navigator !== 'undefined' && !!(navigator as any).bluetooth;
   const hasRequestDevice = hasNavigatorBluetooth && typeof (navigator as any).bluetooth?.requestDevice === 'function';
@@ -26,7 +27,7 @@ export async function detectBluetoothSupport(): Promise<BluetoothSupport> {
   }
 
   if (!secureContext) reasons.push('Page is not a secure context (use HTTPS or localhost).');
-  if (!loopbackHost && typeof location !== 'undefined' && location.protocol !== 'https:') {
+  if (!loopbackHost && currentLocation && currentLocation.protocol !== 'https:') {
     reasons.push('Non-loopback HTTP origin; use https:// or http://localhost.');
   }
   if (!hasNavigatorBluetooth) reasons.push('navigator.bluetooth missing');
@@ -37,4 +38,3 @@ export async function detectBluetoothSupport(): Promise<BluetoothSupport> {
 
   return { supported, secureContext, loopbackHost, hasNavigatorBluetooth, hasRequestDevice, availability, reasons };
 }
-

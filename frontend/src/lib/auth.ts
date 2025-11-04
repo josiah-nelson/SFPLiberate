@@ -5,31 +5,52 @@
  * with support for 'admin' and 'alpha' roles.
  */
 
-import { Account, Client, Models, Teams } from 'appwrite';
+import type { Models } from 'appwrite';
 import { useEffect, useState } from 'react';
 import { getAppwriteEndpoint, getAppwriteProjectId, isAuthEnabled } from './features';
 
+type AppwriteModule = typeof import('appwrite');
+type AppwriteClient = import('appwrite').Client;
+type AppwriteAccount = import('appwrite').Account;
+type AppwriteTeams = import('appwrite').Teams;
+
+let moduleLoader: Promise<AppwriteModule> | null = null;
+
+async function loadAppwriteModule(): Promise<AppwriteModule> {
+    if (!moduleLoader) {
+        moduleLoader = import('appwrite');
+    }
+
+    return moduleLoader;
+}
+
 // Appwrite client singleton
-let appwriteClient: Client | null = null;
-let accountService: Account | null = null;
-let teamsService: Teams | null = null;
+let appwriteClient: AppwriteClient | null = null;
+let accountService: AppwriteAccount | null = null;
+let teamsService: AppwriteTeams | null = null;
 
 /**
  * Initialize Appwrite client
  */
-export function getAppwriteClient(): Client {
-    if (!appwriteClient) {
-        const endpoint = getAppwriteEndpoint();
-        const projectId = getAppwriteProjectId();
-
-        if (!endpoint || !projectId) {
-            throw new Error('Appwrite configuration missing. APPWRITE_SITE_API_ENDPOINT and APPWRITE_SITE_PROJECT_ID should be auto-injected by Appwrite Sites. This error should only occur in development.');
-        }
-
-        appwriteClient = new Client()
-            .setEndpoint(endpoint)
-            .setProject(projectId);
+export async function getAppwriteClient(): Promise<AppwriteClient> {
+    if (appwriteClient) {
+        return appwriteClient;
     }
+
+    if (!isAuthEnabled()) {
+        throw new Error('Appwrite authentication is disabled in this deployment.');
+    }
+
+    const endpoint = getAppwriteEndpoint();
+    const projectId = getAppwriteProjectId();
+
+    if (!endpoint || !projectId) {
+        throw new Error('Appwrite configuration missing. APPWRITE_SITE_API_ENDPOINT and APPWRITE_SITE_PROJECT_ID should be auto-injected by Appwrite Sites. This error should only occur in development.');
+    }
+
+    const { Client } = await loadAppwriteModule();
+
+    appwriteClient = new Client().setEndpoint(endpoint).setProject(projectId);
 
     return appwriteClient;
 }
@@ -37,20 +58,28 @@ export function getAppwriteClient(): Client {
 /**
  * Get Appwrite Account service
  */
-export function getAccount(): Account {
-    if (!accountService) {
-        accountService = new Account(getAppwriteClient());
+export async function getAccount(): Promise<AppwriteAccount> {
+    if (accountService) {
+        return accountService;
     }
+
+    const { Account } = await loadAppwriteModule();
+    const client = await getAppwriteClient();
+    accountService = new Account(client);
     return accountService;
 }
 
 /**
  * Get Appwrite Teams service
  */
-export function getTeams(): Teams {
-    if (!teamsService) {
-        teamsService = new Teams(getAppwriteClient());
+export async function getTeams(): Promise<AppwriteTeams> {
+    if (teamsService) {
+        return teamsService;
     }
+
+    const { Teams } = await loadAppwriteModule();
+    const client = await getAppwriteClient();
+    teamsService = new Teams(client);
     return teamsService;
 }
 
@@ -94,10 +123,10 @@ async function getUserRole(user: Models.User<Models.Preferences>): Promise<UserR
         }
 
         // Fallback: Check team memberships
-        const teams = getTeams();
+        const teams = await getTeams();
         const memberships = await teams.list();
 
-        const teamNames = memberships.teams.map(t => t.name.toLowerCase());
+        const teamNames = memberships.teams.map((team) => team.name.toLowerCase());
         if (teamNames.includes('admin')) {
             return 'admin';
         }
@@ -160,7 +189,7 @@ export function useAuth(): AuthState {
 
         async function checkSession() {
             try {
-                const account = getAccount();
+                const account = await getAccount();
                 const user = await account.get();
 
                 if (!mounted) return;
@@ -211,7 +240,7 @@ export function useAuth(): AuthState {
  * Login with email and password
  */
 export async function login(email: string, password: string): Promise<AppwriteUser> {
-    const account = getAccount();
+    const account = await getAccount();
 
     try {
         await account.createEmailPasswordSession(email, password);
@@ -239,7 +268,7 @@ export async function signup(
     name: string,
     inviteCode?: string
 ): Promise<AppwriteUser> {
-    const account = getAccount();
+    const account = await getAccount();
 
     try {
         // Create account (ID will be auto-generated)
@@ -268,7 +297,7 @@ export async function signup(
  * Logout current session
  */
 export async function logout(): Promise<void> {
-    const account = getAccount();
+    const account = await getAccount();
 
     try {
         await account.deleteSession('current');
@@ -312,7 +341,7 @@ export function requireAdmin(user: AppwriteUser | null): void {
  * Update user preferences
  */
 export async function updatePreferences(prefs: Models.Preferences): Promise<Models.User<Models.Preferences>> {
-    const account = getAccount();
+    const account = await getAccount();
     return await account.updatePrefs(prefs);
 }
 
@@ -320,7 +349,7 @@ export async function updatePreferences(prefs: Models.Preferences): Promise<Mode
  * Get user preferences
  */
 export async function getPreferences(): Promise<Models.Preferences> {
-    const account = getAccount();
+    const account = await getAccount();
     const user = await account.get();
     return user.prefs;
 }

@@ -385,8 +385,8 @@ export class ESPHomeWebSocketClient {
  */
 export function createESPHomeWebSocketClient(): ESPHomeWebSocketClient {
   // Determine WebSocket URL based on current location
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
+  const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = typeof window !== 'undefined' ? window.location.host : 'localhost:3000';
   const wsUrl = `${protocol}//${host}/api/v1/esphome/ws`;
 
   return new ESPHomeWebSocketClient(wsUrl);

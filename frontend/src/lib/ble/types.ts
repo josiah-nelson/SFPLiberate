@@ -23,8 +23,8 @@ export interface DeviceInfo {
 
 export interface GattLikeCharacteristic {
   uuid: UUID;
-  writeValue: (data: ArrayBuffer | Uint8Array) => Promise<void>;
-  writeValueWithoutResponse: (data: ArrayBuffer | Uint8Array) => Promise<void>;
+  writeValue: (data: ArrayBufferLike | Uint8Array) => Promise<void>;
+  writeValueWithoutResponse: (data: ArrayBufferLike | Uint8Array) => Promise<void>;
   startNotifications: () => Promise<{ addEventListener?: (ev: 'characteristicvaluechanged', cb: (ev: { target: { value: DataView } }) => void) => void } | void>;
   addEventListener?: (ev: 'characteristicvaluechanged', cb: (ev: { target: { value: DataView } }) => void) => void;
 }

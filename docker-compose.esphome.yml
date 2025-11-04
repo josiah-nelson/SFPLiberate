@@ -1,0 +1,15 @@
+# Overrides applied when ESPHOME_PROXY_MODE=true
+services:
+  backend:
+    network_mode: host
+    ports: []
+    networks: []
+    environment:
+      - PORT=${BACKEND_HOST_PORT:-8081}
+
+  frontend:
+    network_mode: host
+    ports: []
+    networks: []
+    environment:
+      - BACKEND_URL=http://127.0.0.1:${BACKEND_HOST_PORT:-8081}

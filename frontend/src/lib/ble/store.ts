@@ -4,7 +4,7 @@ type Listener = () => void;
 
 export type BleState = {
   connected: boolean;
-  connectionType: 'Not Connected' | 'Direct (Web Bluetooth)' | 'Proxy (via Backend)';
+  connectionType: 'Not Connected' | 'Direct (Web Bluetooth)' | 'Proxy (via Backend)' | 'ESPHome Proxy (WebSocket)';
   resolvedMode: ResolvedMode;
   deviceVersion?: string | null;
   sfpPresent?: boolean;
@@ -79,4 +79,3 @@ export function log(line: string) {
   state.logs = [`[${new Date().toLocaleTimeString()}] ${line}`, ...state.logs].slice(0, 500);
   emit();
 }
-

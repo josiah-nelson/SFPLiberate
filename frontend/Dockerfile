@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build optimized for Next.js with BuildKit features
 
-FROM node:22.21.0-alpine AS base
+FROM node:24.11.0-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -13,9 +13,9 @@ WORKDIR /app
 # Copy only package files for better layer caching
 COPY --link package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN \
-    if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then npm ci --omit=dev --legacy-peer-deps; \
-    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile --prod; \
+    if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then npm ci; \
+    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile; \
     else echo "Lockfile not found." && exit 1; \
     fi
 
@@ -28,7 +28,7 @@ ENV DEPLOYMENT_MODE=standalone
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy source files (cached separately from dependencies)
-COPY --link package.json yarn.lock* package-lock.json* pnpm-lock.yaml* next.config.ts tsconfig.json ./
+COPY --link package.json yarn.lock* package-lock.json* pnpm-lock.yaml* next.config.ts tsconfig.json .npmrc* ./
 COPY --link public ./public
 COPY --link src ./src
 
@@ -44,6 +44,9 @@ RUN \
     elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
     else echo "Lockfile not found." && exit 1; \
     fi
+
+# Drop development dependencies after the build to keep output lean
+RUN [ -f package-lock.json ] && npm prune --omit=dev || true
 
 # Production image, copy all the files and run next
 FROM base AS runner

@@ -21,6 +21,16 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 VCS_REF := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
+# Optional ESPHome overrides
+ESPHOME_PROXY_MODE_LOWER := $(shell printf '%s' "$(ESPHOME_PROXY_MODE)" | tr '[:upper:]' '[:lower:]')
+ifeq ($(filter true 1 yes,$(ESPHOME_PROXY_MODE_LOWER)),)
+COMPOSE_STACK := -f $(COMPOSE_FILE)
+DEV_COMPOSE_STACK := -f $(COMPOSE_FILE) -f $(COMPOSE_DEV)
+else
+COMPOSE_STACK := -f $(COMPOSE_FILE) -f docker-compose.esphome.yml
+DEV_COMPOSE_STACK := -f $(COMPOSE_FILE) -f $(COMPOSE_DEV) -f docker-compose.esphome.yml
+endif
+
 # Export variables for docker-compose
 export VERSION
 export BUILD_DATE
@@ -37,17 +47,17 @@ help: ## Display this help message
 
 dev: ## Start development environment with hot-reload
 	@echo "$(GREEN)Starting development environment...$(RESET)"
-	docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV) up --build
+	docker-compose $(DEV_COMPOSE_STACK) up --build
 
 dev-detached: ## Start development environment in background
 	@echo "$(GREEN)Starting development environment (detached)...$(RESET)"
-	docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV) up -d --build
+	docker-compose $(DEV_COMPOSE_STACK) up -d --build
 
 dev-logs: ## Follow logs in development mode
-	docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV) logs -f
+	docker-compose $(DEV_COMPOSE_STACK) logs -f
 
 dev-stop: ## Stop development environment
-	docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV) down
+	docker-compose $(DEV_COMPOSE_STACK) down --volumes --remove-orphans
 
 ##@ Production
 
@@ -56,11 +66,11 @@ build: ## Build production images
 	@echo "Version: $(VERSION)"
 	@echo "Build Date: $(BUILD_DATE)"
 	@echo "VCS Ref: $(VCS_REF)"
-	docker-compose build --parallel
+	docker-compose $(COMPOSE_STACK) build --parallel
 
 prod: build ## Start production environment
 	@echo "$(GREEN)Starting production environment...$(RESET)"
-	docker-compose up -d
+	docker-compose $(COMPOSE_STACK) up -d
 	@echo "$(GREEN)Waiting for services to be healthy...$(RESET)"
 	@sleep 5
 	@$(MAKE) health
@@ -69,45 +79,57 @@ up: prod ## Alias for 'make prod'
 
 restart: ## Restart all services
 	@echo "$(YELLOW)Restarting services...$(RESET)"
-	docker-compose restart
+	docker-compose $(COMPOSE_STACK) restart
 	@$(MAKE) health
 
 stop: ## Stop all services
 	@echo "$(YELLOW)Stopping services...$(RESET)"
-	docker-compose stop
+	docker-compose $(COMPOSE_STACK) stop
 
 down: ## Stop and remove containers
 	@echo "$(YELLOW)Stopping and removing containers...$(RESET)"
-	docker-compose down
+	docker-compose $(COMPOSE_STACK) down
+
+prod-stop: ## Stop production services without removing containers
+	@echo "$(YELLOW)Stopping production services...$(RESET)"
+	docker-compose $(COMPOSE_STACK) stop
+
+prod-clean: ## Stop production services and remove containers + volumes
+	@echo "$(YELLOW)Stopping services and removing containers/volumes...$(RESET)"
+	docker-compose $(COMPOSE_STACK) down --volumes --remove-orphans
+
+prune-build-cache: ## Remove unused Docker builder cache (safe)
+	@echo "$(YELLOW)Pruning Docker build cache...$(RESET)"
+	docker builder prune -f
 
 down-volumes: ## Stop and remove containers + volumes (⚠️  destroys data)
 	@echo "$(YELLOW)⚠️  WARNING: This will delete all data!$(RESET)"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		docker-compose down -v; \
+		docker-compose $(COMPOSE_STACK) down -v --remove-orphans; \
 	fi
 
 ##@ Monitoring
 
 logs: ## Follow logs for all services
-	docker-compose logs -f
+	docker-compose $(COMPOSE_STACK) logs -f
 
 logs-backend: ## Follow backend logs only
-	docker-compose logs -f backend
+	docker-compose $(COMPOSE_STACK) logs -f backend
 
 logs-frontend: ## Follow frontend logs only
-	docker-compose logs -f frontend
+	docker-compose $(COMPOSE_STACK) logs -f frontend
 
 health: ## Check service health status
 	@echo "$(BLUE)Checking service health...$(RESET)"
-	@docker-compose ps
+	@docker-compose $(COMPOSE_STACK) ps
 	@echo ""
 	@echo "$(BLUE)Backend Health:$(RESET)"
-	@curl -f http://localhost:8080/api/modules > /dev/null 2>&1 && echo "$(GREEN)✓ Backend is healthy$(RESET)" || echo "$(YELLOW)✗ Backend is unhealthy$(RESET)"
+	@curl -f http://localhost:${BACKEND_HOST_PORT:-8081}/api/modules > /dev/null 2>&1 && echo "$(GREEN)✓ Backend is healthy$(RESET)" || echo "$(YELLOW)✗ Backend is unhealthy$(RESET)"
 	@echo ""
 	@echo "$(BLUE)Frontend Health:$(RESET)"
-	@curl -f http://localhost:8080/ > /dev/null 2>&1 && echo "$(GREEN)✓ Frontend is healthy$(RESET)" || echo "$(YELLOW)✗ Frontend is unhealthy$(RESET)"
+	@curl -f http://localhost:${FRONTEND_PORT:-3000}/ > /dev/null 2>&1 && echo "$(GREEN)✓ Frontend is healthy$(RESET)" || echo "$(YELLOW)✗ Frontend is unhealthy$(RESET)"
 
 status: health ## Alias for 'make health'
 
