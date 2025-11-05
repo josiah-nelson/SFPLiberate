@@ -6,9 +6,9 @@ import { getESPHomeClient } from '@/lib/esphome/esphomeClient';
 import { getSignalStrength, getSignalColor } from '@/lib/esphome/esphomeTypes';
 import type { DiscoveredDevice } from '@/lib/esphome/esphomeTypes';
 import { saveActiveProfile } from '@/lib/ble/profile';
-import { Button } from '@/registry/new-york-v4/ui/button';
-import { Input } from '@/registry/new-york-v4/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/registry/new-york-v4/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Wifi, WifiOff } from 'lucide-react';
 
 export function ESPHomeDiscovery() {

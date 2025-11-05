@@ -67,6 +67,8 @@ const nextConfig: NextConfig = {
         optimisticClientCache: true,
         // Enable package-level tree shaking for large UI icon libraries
         optimizePackageImports: ['@radix-ui/react-icons'],
+        // Next.js 16: Enable Turbopack filesystem caching for faster dev builds
+        turbopackFileSystemCacheForDev: true,
     },
 
     turbopack: isStandalone

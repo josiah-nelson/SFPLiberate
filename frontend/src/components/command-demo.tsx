@@ -11,7 +11,7 @@ import {
     CommandList,
     CommandSeparator,
     CommandShortcut
-} from '@/registry/new-york-v4/ui/command';
+} from '@/components/ui/command';
 
 import { Calculator, Calendar, CreditCard, Settings, Smile, User } from 'lucide-react';
 

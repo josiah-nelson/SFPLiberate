@@ -8,9 +8,9 @@
 
 import { useAuthContext } from '@/components/providers/AuthProvider';
 import { isAuthEnabled } from '@/lib/features';
-import { Alert, AlertDescription, AlertTitle } from '@/registry/new-york-v4/ui/alert';
-import { Button } from '@/registry/new-york-v4/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/registry/new-york-v4/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Lock, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ReactNode } from 'react';

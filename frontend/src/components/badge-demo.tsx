@@ -1,4 +1,4 @@
-import { Badge } from '@/registry/new-york-v4/ui/badge';
+import { Badge } from '@/components/ui/badge';
 
 import { AlertCircleIcon, ArrowRightIcon, CheckIcon } from 'lucide-react';
 

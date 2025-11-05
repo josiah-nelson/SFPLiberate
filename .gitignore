@@ -1,17 +1,34 @@
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
 
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
 .venv/
 venv/
 env/
+ENV/
 .pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
 artifacts/
+.mypy_cache/
+.ruff_cache/
+.tox/
 
 # SQLite DBs
 *.db
+*.db-journal
+*.db-shm
+*.db-wal
 
 # Node / Frontend
 node_modules/
@@ -21,12 +38,40 @@ build/
 out/
 .vercel/
 *.env.local
+*.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.yarn/
 
 # Docker
 *.log
 .env
+docker-compose.override.yml
+
+# Runtime Data
+/data/
+/backend/data/
+/backend/app/data/
 
 # IDEs
 .idea/
 .vscode/
-/data/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig

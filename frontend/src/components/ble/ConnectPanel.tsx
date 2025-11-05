@@ -9,17 +9,29 @@ import { ConnectionStatus } from '@/components/ble/ConnectionStatus';
 import { DirectDiscovery } from '@/components/ble/DirectDiscovery';
 import { ESPHomeDiscovery } from '@/components/esphome/ESPHomeDiscovery';
 import { loadActiveProfile, saveActiveProfile } from '@/lib/ble/profile';
-import { Button } from '@/registry/new-york-v4/ui/button';
-import { Input } from '@/registry/new-york-v4/ui/input';
-import { Label } from '@/registry/new-york-v4/ui/label';
-import { Alert, AlertDescription } from '@/registry/new-york-v4/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isIOS, isSafari, isWebBluetoothAvailable } from '@/lib/ble/webbluetooth';
 import { toast } from 'sonner';
 import { detectBluetoothSupport } from '@/lib/ble/support';
 
+// Server snapshot that returns stable initial state
+const getServerSnapshot = () => ({
+  connected: false,
+  connectionType: 'Not Connected' as const,
+  resolvedMode: 'none' as const,
+  deviceVersion: null,
+  sfpPresent: undefined,
+  batteryPct: undefined,
+  rawEepromData: null,
+  logs: [],
+});
+
 export function ConnectPanel() {
   const [mode, setMode] = useState<ConnectionMode>('auto');
-  const state = useSyncExternalStore(subscribe, getBleState, getBleState);
+  const state = useSyncExternalStore(subscribe, getBleState, getServerSnapshot);
   const [busy, setBusy] = useState(false);
   const [modules, setModules] = useState<any[]>([]);
   const [svc, setSvc] = useState('');

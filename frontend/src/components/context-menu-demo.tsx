@@ -12,7 +12,7 @@ import {
     ContextMenuSubContent,
     ContextMenuSubTrigger,
     ContextMenuTrigger
-} from '@/registry/new-york-v4/ui/context-menu';
+} from '@/components/ui/context-menu';
 
 import { Code2Icon, PlusIcon, TrashIcon } from 'lucide-react';
 

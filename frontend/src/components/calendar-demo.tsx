@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { Calendar } from '@/registry/new-york-v4/ui/calendar';
+import { Calendar } from '@/components/ui/calendar';
 
 import { addDays } from 'date-fns';
 import { type DateRange } from 'react-day-picker';

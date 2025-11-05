@@ -2,412 +2,678 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
 ## Project Overview
 
-SFPLiberate is a Web Bluetooth companion app for the Ubiquiti SFP Wizard (UACC-SFP-Wizard) that captures SFP/SFP+ module EEPROM data over BLE, stores it in a local library, and aims to enable cloning/reprogramming modules. The architecture is a **Next.js 16 frontend** (shadcn/ui) + **Dockerized Python FastAPI backend** with SQLite storage. In standalone mode, the Next.js server proxies `/api/*` to the backend.
+**SFPLiberate** is a Web Bluetooth companion app for the Ubiquiti SFP Wizard (UACC-SFP-Wizard) that captures SFP/SFP+ module EEPROM data over BLE, stores it in a local library, and enables cloning/reprogramming modules.
 
-### Project Goals & Scope
+**Architecture:**
+- **Frontend:** Next.js 16 (App Router) + TypeScript + React 19 + shadcn/ui
+- **Backend:** FastAPI + SQLAlchemy 2.0 + Python 3.14 + Poetry
+- **Database:** SQLite (standalone) or Appwrite (cloud)
+- **Deployment:** Docker Compose with two containers
 
-**Core Problem:** The SFP Wizard hardware device:
-- Only communicates via BLE (no local storage, no network connectivity)
-- Can only store ONE module profile for writing at a time
-- Requires users to purchase an OEM module to read before writing
+---
 
-**Solution:** SFPLiberate enables users to:
-1. **Store unlimited module profiles** locally or in the cloud
-2. **"Replay" EEPROM data** to blank modules without needing the original
-3. **Share modules via community database** so anyone can write a Cisco/Intel/etc. SFP without buying one first
-
-**Target Users:** Niche community of networking enthusiasts + home automation hobbyists (overlap with Home Assistant users)
-
-### Project Status (Pre-Alpha)
+## Project Status: Pre-Alpha
 
 - **Current State:** Single-user development/testing (no external users yet)
-- **Development Philosophy:**
-  - **Stage 1:** Make it work (rapid iteration, no polish)
-  - **Stage 2:** Make it right (refactor and polish after validation)
-- **Alpha/Beta Timeline:** External users invited only after core functionality works in all deployment modes
+- **Development Philosophy:** "Make it work" → "Make it right"
+- **Breaking Changes:** Acceptable - no production users to maintain compatibility for
 
-### Three Deployment Modes (All Permanent)
+**Core Problem:**
+- SFP Wizard can only store ONE module profile at a time
+- No way to "copy" modules without physically having the original
+- No persistent library of configurations
 
-#### 1. Standalone Docker (Full Local)
-- **Purpose:** Complete offline capability for self-hosters
-- **Features:** Local SQLite database, optional sync with community database
-- **Target:** Users who want full control, no cloud dependency
-- **Access:** `docker-compose up` → http://localhost:8080
+**Solution:**
+- Unlimited module storage (local SQLite or cloud Appwrite)
+- Clone modules from saved profiles
+- Community sharing (planned)
 
-#### 2. Appwrite Cloud (Public Instance)
-- **Purpose:** Browser-only access to app functionality + community database hosting
-- **Features:** Hosted backend, authentication, community module repository
-- **Target:** Users who don't want to self-host
-- **Deployment:** GitHub Actions workflow → Appwrite Cloud (single public instance)
-- **Code Split:** Appwrite-specific code is NOT included in standalone builds
-
-#### 3. Standalone BLE Proxy (Lightweight Bridge)
-- **Purpose:** BLE bridge for users with incompatible browsers (Safari, iOS)
-- **Features:** Proxy ONLY - no backend, no database, just BLE communication
-- **Target:** Users who want app functionality but can't use Web Bluetooth directly
-- **Scope:** Discovery → Connection → UUID extraction → hands off to main app
-
-**Important:** ESPHome proxy has replaced the old Bleak-based proxy. It leverages existing ESPHome Bluetooth proxies that Home Assistant users already have running on their networks.
-
-### ESPHome Proxy Architecture (✅ Implemented)
-
-**Feature Flag:** `ESPHOME_PROXY_MODE=true` (backend environment variable)
-
-**Status:** Fully implemented and tested with 10+ ESPHome proxies on production network.
-
-**Implementation Details:**
-
-Backend Components (`backend/app/services/esphome/`):
-- `proxy_manager.py`: mDNS discovery and ESPHome Native API client lifecycle
-- `device_manager.py`: Device tracking with RSSI per proxy, best proxy selection
-- `proxy_service.py`: Singleton coordinator with advertisement deduplication
-- `connection_manager.py`: Persistent BLE device connections for ongoing communication
-- `schemas.py`: Pydantic models for ESPHome entities
-- `websocket_schemas.py`: WebSocket message schemas for BLE proxy communication
-
-Backend API Endpoints (`backend/app/api/v1/`):
-- `esphome.py`: REST API for discovery and status
-- `esphome_websocket.py`: WebSocket endpoint for full BLE communication
-
-Frontend Components (`frontend/src/`):
-- `lib/esphome/esphomeClient.ts`: API client with SSE subscription (discovery)
-- `lib/esphome/esphomeWebSocketClient.ts`: WebSocket client for BLE communication
-- `lib/esphome/websocketAdapter.ts`: Adapter providing Web Bluetooth-like API
-- `lib/esphome/esphomeTypes.ts`: TypeScript interfaces and helpers
-- `components/esphome/ESPHomeDiscovery.tsx`: Discovery UI with auto-discovery and manual MAC entry
-- `components/ble/ConnectionModeSelector.tsx`: Updated to show ESPHome option when enabled
-
-**API Endpoints:**
-- `GET /api/v1/esphome/status` - Service status and proxy/device counts
-- `GET /api/v1/esphome/devices` - SSE stream of discovered devices
-- `POST /api/v1/esphome/connect` - Connect to device and retrieve UUIDs (discovery only)
-- `WS /api/v1/esphome/ws` - WebSocket for full BLE communication (connect, write, subscribe)
-
-**Docker Configuration:**
-- **Requires host networking** for both backend and frontend (mDNS + LAN access)
-- Backend listens on port 80, frontend on port 3000
-- Manual proxy configuration available for environments without mDNS
-
-**ESPHome Proxy Flow:**
-
-*Discovery (for browsers with Web Bluetooth):*
-1. Backend discovers ESPHome proxies via mDNS (automatic, continuous)
-2. Backend subscribes to BLE advertisements from all proxies
-3. Frontend connects to SSE stream → shows list of discovered SFP devices with signal strength
-4. User selects device (or enters MAC manually) → Frontend POSTs MAC address to backend
-5. Backend selects best proxy (highest RSSI), connects to device via ESPHome Native API
-6. Backend enumerates GATT services/characteristics → extracts service UUID, notify UUID, write UUID
-7. Backend disconnects from device, returns UUIDs to frontend
-8. Frontend stores UUIDs in profile cache (localStorage)
-9. Future connections use cached UUIDs with direct Web Bluetooth (no re-discovery needed)
-
-*Full Communication via WebSocket (for Safari/iOS without Web Bluetooth):*
-1. Backend discovers ESPHome proxies via mDNS (automatic, continuous)
-2. Backend subscribes to BLE advertisements from all proxies
-3. Frontend connects to SSE stream → shows list of discovered SFP devices
-4. User selects ESPHome proxy mode → Frontend establishes WebSocket connection to backend
-5. Frontend sends connect message with MAC address (and optional UUIDs if cached)
-6. Backend selects best proxy, connects to device, discovers UUIDs if needed
-7. Backend maintains persistent connection to device via ESPHome proxy
-8. Frontend sends write commands via WebSocket → Backend forwards to device via ESPHome
-9. Device notifications are forwarded: Device → ESPHome → Backend → WebSocket → Frontend
-10. All BLE communication flows through WebSocket (no direct Web Bluetooth needed)
-
-**Key Design Decisions:**
-- **No authentication** for ESPHome proxies (assumes local trusted network)
-- **Fail fast** with 30s connection timeout (don't spam network)
-- **Multi-proxy support** with RSSI-based selection per device
-- **Dual mode operation**: UUID discovery for Web Bluetooth OR full BLE proxy for Safari/iOS
-- **WebSocket for full BLE communication** - persistent connection for write/notify operations
-- **Web Bluetooth-like API** - Frontend adapter provides familiar GATT-like interface
-- **10-second auto-discovery timeout** before showing manual MAC entry
-- **2-second advertisement deduplication** to reduce noise
-
-**Documentation:** See `docs/ESPHOME_INTEGRATION.md` for complete guide.
-
-### Ideal User Flow
-
-1. User opens app in browser (Chrome/Edge preferred, Safari via proxy)
-2. SFP Wizard device is auto-discovered via Web Bluetooth (or ESPHome proxy)
-3. User confirms connection to device
-4. User inserts SFP module into Wizard → EEPROM data displayed in app
-5. User can:
-   - **Save** module to local library (for later writing)
-   - **Upload** module to community database (for others to use)
-   - **Download** module from community database and write to blank SFP
-
-## Commands
-
-### Running the Application
-```bash
-# Start the full stack (builds both containers if needed)
-docker-compose up --build
-
-# Access the app at http://localhost:8080
-# Access API docs at http://localhost:8080/api/docs
-
-# Stop the application
-docker-compose down
-
-# Stop and remove volumes (clean slate)
-docker-compose down -v
-```
-
-### Development Workflows
-
-#### Viewing Logs
-```bash
-# All services
-docker-compose logs -f
-
-# Backend only
-docker-compose logs -f backend
-
-# Frontend only
-docker-compose logs -f frontend
-```
-
-#### Backend Development (Optional Local Mode)
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-# Access at http://localhost:8000/api/docs
-```
-
-#### Database Access
-```bash
-# Connect to SQLite database
-docker exec -it sfpliberate-backend sqlite3 /app/data/sfp_library.db
-
-# View schema
-.schema
-
-# Query modules
-SELECT id, name, vendor, model, created_at FROM sfp_modules;
-```
+---
 
 ## Architecture
 
-### Single-Origin Reverse Proxy Design
-- **Frontend (Next.js)**: Serves the app at `/` and reverse-proxies `/api/*` to backend in standalone mode
-- **Backend (FastAPI)**: Python backend on port 80 internally, exposes REST API at `/api`
-- **External Access**: Port 8080 → NGINX → routes to frontend or backend based on path
-- **No CORS Issues**: Same-origin in production; dev CORS middleware enabled on backend
+### Frontend (`/frontend`)
 
-### BLE Communication Pattern (Critical)
-- **Core operations happen on-device**: The SFP Wizard reads/writes EEPROM internally via button presses
-- **BLE broadcasts data**: Device sends human-readable logs (`sysmon: ... sfp:[x]`) and binary EEPROM dumps over BLE characteristics for capture
-- **Commands are speculative**: Text commands like `[POST] /sfp/write/start` in code are **guesses**—not verified. Write functionality requires reverse-engineering the actual BLE protocol from official app
-- **Frontend uses Web Bluetooth API** (`navigator.bluetooth`) to connect and subscribe to notifications
-- **Safari/iOS**: NO Web Bluetooth support (as of Safari 18 / iOS 18). Users must use Chrome/Edge on desktop or Bluefy browser on iOS
+**Tech Stack:**
+- Next.js 16 with App Router (`src/app/`)
+- TypeScript + React 19
+- shadcn/ui components + Tailwind CSS
+- Web Bluetooth API for direct BLE communication
+- ESPHome WebSocket client for iOS/Safari
 
-### Data Storage & Deduplication
-- Backend stores modules in SQLite with SHA-256 checksum (unique index on `sha256` column)
-- `database_manager.add_module()` returns `(id, is_duplicate)` tuple; duplicates reuse existing ID
-- EEPROM stored as BLOB; metadata (vendor/model/serial) parsed server-side via `sfp_parser.parse_sfp_data()`
-- Client-side SHA-256 duplicate detection not yet implemented (future enhancement)
+**Key Directories:**
+```
+frontend/src/
+├── app/              # Next.js pages (App Router)
+│   ├── page.tsx      # Home page
+│   ├── modules/      # Module library UI
+│   └── settings/     # Settings page
+├── components/       # React components
+│   ├── ble/          # Web Bluetooth components
+│   ├── esphome/      # ESPHome proxy UI
+│   ├── modules/      # Module management
+│   └── ui/           # shadcn/ui components
+├── lib/              # Utilities & clients
+│   ├── api/          # Backend API client
+│   ├── ble/          # Web Bluetooth abstraction
+│   └── esphome/      # ESPHome WebSocket client
+└── types/            # TypeScript type definitions
+```
+
+**Reverse Proxy:**
+- Next.js `rewrites` in `next.config.ts` proxy `/api/*` to backend
+- No nginx - native Next.js functionality
+- Config handles standalone vs Appwrite deployment modes
+
+**BLE Communication:**
+- Primary: Web Bluetooth API (`navigator.bluetooth`)
+- Fallback: ESPHome proxy via WebSocket (for iOS/Safari)
+- UUIDs cached in localStorage after discovery
+
+---
+
+### Backend (`/backend`)
+
+**Tech Stack:**
+- FastAPI with Python 3.14
+- SQLAlchemy 2.0 (async) with SQLite
+- Poetry for dependency management
+- structlog for structured logging
+- ESPHome Native API integration
+
+**Key Directories:**
+```
+backend/
+├── app/
+│   ├── main.py              # FastAPI app entry point
+│   ├── config.py            # Settings (Pydantic BaseSettings)
+│   ├── api/v1/              # API endpoints
+│   │   ├── modules.py       # Module CRUD
+│   │   ├── esphome.py       # ESPHome REST endpoints
+│   │   └── esphome_websocket.py  # ESPHome WebSocket
+│   ├── core/                # Core utilities
+│   │   ├── database.py      # SQLAlchemy setup (create_all)
+│   │   └── logging.py       # structlog configuration
+│   ├── models/              # SQLAlchemy models
+│   │   └── module.py        # SFP module model
+│   ├── repositories/        # Data access layer
+│   │   └── module_repository.py
+│   ├── schemas/             # Pydantic schemas (API)
+│   │   └── module.py
+│   └── services/            # Business logic
+│       ├── esphome/         # ESPHome proxy service
+│       └── sfp_parser.py    # SFF-8472 parser
+├── tests/                   # Unit & integration tests
+├── Dockerfile               # Production build (Poetry)
+├── pyproject.toml           # Dependencies + config
+└── poetry.lock              # Locked dependencies
+```
+
+**Database Setup:**
+- **No Alembic** - using `Base.metadata.create_all()` for simplicity (pre-alpha)
+- Tables created on startup via `init_db()` in lifespan
+- Add Alembic post-alpha when schema migrations needed
+
+**API Versioning:**
+- All endpoints under `/api/v1/`
+- Auto-generated docs at `/api/docs` (Swagger UI)
+
+---
+
+## Deployment Modes
+
+### 1. Standalone Docker (Default)
+
+**Purpose:** Complete local deployment with SQLite
+
+**Stack:**
+- Frontend: Next.js standalone server (port 3000 → host 8080)
+- Backend: FastAPI + SQLite (port 80 → host 8081)
+- Database: SQLite file in Docker volume
+- Networking: Bridge mode (172.25.0.0/24)
+
+**Access:** http://localhost:8080
+
+**Commands:**
+```bash
+docker-compose up --build          # Start services
+docker-compose down                # Stop services
+docker-compose logs -f backend     # View backend logs
+```
+
+**Environment:**
+- `DEPLOYMENT_MODE=standalone` (default)
+- `ESPHOME_PROXY_MODE=false` (default)
+
+---
+
+### 2. Appwrite Cloud
+
+**Purpose:** Hosted deployment with Appwrite backend
+
+**Stack:**
+- Frontend: Static export to Appwrite Sites
+- Backend: Appwrite Functions (serverless)
+- Database: Appwrite Database
+- Auth: Appwrite Auth
+
+**Build:**
+- `DEPLOYMENT_MODE=appwrite` triggers `output: 'export'` in Next.js
+- Frontend uses Appwrite SDK instead of REST API
+- Backend repository layer routes to Appwrite Database
+
+**Deployment:**
+- GitHub Actions workflow (planned)
+- Manual: `npm run build && appwrite deploy`
+
+---
+
+### 3. ESPHome Proxy Mode (Optional)
+
+**Purpose:** BLE proxy for iOS/Safari users without Web Bluetooth
+
+**When Enabled:**
+- Frontend uses WebSocket instead of Web Bluetooth
+- Backend discovers ESPHome proxies via mDNS
+- Backend forwards BLE commands to ESPHome → device
+
+**Docker Configuration:**
+```bash
+# Enable in .env
+ESPHOME_PROXY_MODE=true
+
+# Start with host networking (required for mDNS)
+docker-compose -f docker-compose.yml -f docker-compose.esphome.yml up
+```
+
+**Requirements:**
+- ESPHome Bluetooth proxy on network (Home Assistant users typically have this)
+- mDNS enabled OR manual proxy configuration
+
+**Key Difference from Standalone:**
+- `docker-compose.esphome.yml` sets frontend to `network_mode: host`
+- Backend stays in bridge mode (connects to frontend via localhost)
+- See `docs/ESPHOME.md` for complete guide
+
+---
+
+## BLE Protocol (Firmware v1.0.10)
+
+**Service UUID:** `8E60F02E-F699-4865-B83F-F40501752184`
+**Write Characteristic:** `9280F26C-A56F-43EA-B769-D5D732E1AC67`
+**Notify Characteristic:** `DC272A22-43F2-416B-8FA5-63A071542FAC`
+
+**Discovered Endpoints:**
+- `GET /api/1.0/version` - Firmware version
+- `GET /stats` - Device status (battery, SFP presence)
+- `POST /sif/start` - Read SFP EEPROM
+- `POST /sif/write` - Write SFP EEPROM (binary data chunking)
+- `POST /sif/erase` - Erase SFP EEPROM
+- `POST /sif/stop` - Stop operation
+
+**Data Format:**
+- Text commands sent to write characteristic
+- Binary EEPROM data sent in 20-byte chunks
+- Responses received via notify characteristic
+- SFF-8472 spec for EEPROM structure (vendor @ bytes 20-36, model @ 40-56, serial @ 68-84)
+
+See `docs/BLE_API_SPECIFICATION.md` for complete protocol documentation.
+
+---
 
 ## Key Files & Responsibilities
 
-### Frontend (`frontend/`)
-- **`script.js`**: BLE state machine, notification handler, SFF-8472 EEPROM parser, API client
-  - `handleNotifications()`: Core dispatcher—heuristic text vs binary detection for incoming BLE data
-  - `parseAndDisplaySfpData()`: Client-side SFF-8472 parser (vendor @ bytes 20-36, model @ 40-56, serial @ 68-84)
-  - Browser compatibility: `acceptAllDevices` fallback for some browsers, `DataView → Uint8Array` conversion for data processing
-  - **IMPORTANT**: BLE UUIDs (`SFP_SERVICE_UUID`, `WRITE_CHAR_UUID`, `NOTIFY_CHAR_UUID`) are placeholders—must be discovered via nRF Connect and configured before use
-- **`index.html`**: Static UI with status indicators (`bleStatus`, `sfpStatus`), module library list, placeholder community sections
-- **`style.css`**: Minimalist CSS styling
-- **`nginx.conf`**: Reverse proxy config—`location /api/` passes to `http://backend:80`
+### Frontend
 
-### Backend (`backend/`)
-- **`main.py`**: FastAPI app with 6 endpoints:
-  - `GET /api/modules` → list all (excludes BLOB)
-  - `POST /api/modules` → save new module (Base64 EEPROM in payload)
-  - `GET /api/modules/{id}/eeprom` → raw binary BLOB (`application/octet-stream`)
-  - `DELETE /api/modules/{id}` → delete module
-  - `POST /api/submissions` → community inbox (writes to disk: `{uuid}/eeprom.bin` + `metadata.json`)
-  - Root `/` → returns API info JSON
-- **`database_manager.py`**: SQLite wrapper with SHA-256 duplicate detection, `setup_database()` migration logic
-- **`sfp_parser.py`**: SFF-8472 spec parser (identical logic to frontend, validates server-side)
-- **Dependencies**: `fastapi`, `uvicorn[standard]`, `pydantic` (Python 3.11+)
+**`frontend/src/app/page.tsx`**
+- Home page with BLE connection UI
+- Integrates Web Bluetooth and ESPHome proxy
+- Device status display
 
-### Docker & Infrastructure
-- **`docker-compose.yml`**: Two services (`backend`, `frontend`)
-  - Backend volume: `backend_data:/app/data` for SQLite persistence
-  - Backend env: `DATABASE_FILE=/app/data/sfp_library.db`, `SUBMISSIONS_DIR=/app/data/submissions`
-- **`backend/Dockerfile`**: Python 3.11-slim base, installs requirements, runs uvicorn
-- **`frontend/Dockerfile`**: NGINX base, copies static files and nginx.conf
+**`frontend/src/lib/ble/manager.ts`**
+- Web Bluetooth abstraction layer
+- Connection lifecycle management
+- Notification handling
 
-## API Endpoints Reference
+**`frontend/src/lib/esphome/esphomeWebSocketClient.ts`**
+- WebSocket client for ESPHome proxy
+- Provides Web Bluetooth-like API via adapter
+- Used when Web Bluetooth unavailable (iOS/Safari)
 
+**`frontend/src/lib/api/backendClient.ts`**
+- Backend API client (module CRUD)
+- Axios-based with TypeScript types
+- Error handling and retry logic
+
+**`frontend/next.config.ts`**
+- Dual deployment mode configuration
+- Rewrites for API proxying in standalone mode
+- Build output: `standalone` or `export`
+
+---
+
+### Backend
+
+**`backend/app/main.py`**
+- FastAPI app initialization
+- Lifespan manager (startup/shutdown)
+- CORS middleware for development
+- Structured logging setup
+- ESPHome service startup (if enabled)
+
+**`backend/app/core/database.py`**
+- SQLAlchemy async engine
+- Session management (`get_db` dependency)
+- `init_db()` - creates tables via `Base.metadata.create_all()`
+
+**`backend/app/api/v1/modules.py`**
+- Module CRUD endpoints
+- `/api/v1/modules` - List, create modules
+- `/api/v1/modules/{id}` - Get, update, delete
+- `/api/v1/modules/{id}/eeprom` - Get raw binary
+
+**`backend/app/services/esphome/proxy_service.py`**
+- ESPHome proxy discovery via mDNS
+- Device advertisement tracking
+- RSSI-based proxy selection
+- Singleton service (started in lifespan)
+
+**`backend/app/api/v1/esphome_websocket.py`**
+- WebSocket endpoint (`/api/v1/esphome/ws`)
+- Forwards BLE commands to ESPHome proxy
+- Handles notifications from device
+- Connection lifecycle management
+
+---
+
+## Docker Configuration
+
+### Files
+
+**`docker-compose.yml`** (Main)
+- Defines `backend` and `frontend` services
+- Bridge networking with custom subnet
+- Volume for backend data persistence
+- Health checks for both services
+
+**`docker-compose.dev.yml`** (Development Override)
+- Mounts source code for hot-reload
+- Backend: Poetry + uvicorn reload
+- Frontend: npm dev server
+
+**`docker-compose.esphome.yml`** (ESPHome Override)
+- Sets frontend to `network_mode: host`
+- Updates `BACKEND_URL` to localhost
+- Required for ESPHome proxy mode
+
+### Backend Dockerfile
+
+**`backend/Dockerfile`** (Poetry-based)
+```dockerfile
+FROM python:3.14-slim
+# Install Poetry
+# Export requirements via Poetry
+# Install dependencies
+# Copy app code
+# CMD: uvicorn app.main:app
 ```
-GET    /api/modules              → [{id, name, vendor, model, serial, created_at}, ...]
-POST   /api/modules              → {name, eeprom_data_base64} → {status, message, id}
-GET    /api/modules/{id}/eeprom  → binary/octet-stream (raw BLOB)
-DELETE /api/modules/{id}         → {status, message}
-POST   /api/submissions          → {name, vendor, model, serial, eeprom_data_base64, notes?} → {status, inbox_id, sha256}
+
+**No migrations on startup** - `create_all()` is idempotent
+
+### Frontend Dockerfile
+
+**`frontend/Dockerfile`** (Next.js standalone)
+```dockerfile
+# Build stage: npm install + npm run build
+# Production stage: Copy standalone output
+# CMD: node server.js
 ```
 
-FastAPI docs auto-generated at: `http://localhost:8080/api/docs`
+---
 
-## BLE Protocol Reverse-Engineering
+## Common Development Tasks
 
-### Current Status - ✅ COMPLETED (Issue #4)
-- **Protocol fully discovered and documented** in `docs/BLE_API_SPECIFICATION.md`
-- **Write functionality implemented** using `[POST] /sif/write` endpoint
-- **All BLE UUIDs configured** for firmware v1.0.10
-- **Status and version monitoring implemented**
-- **Safety features and warnings in place**
+### Running Locally
 
-### Discovered Endpoints
-- `/api/1.0/version` - Get firmware version
-- `[GET] /stats` - Get device status (battery, SFP presence, etc.)
-- `[POST] /sif/start` - Read SFP EEPROM
-- `[POST] /sif/write` - Write SFP EEPROM (with binary data chunking)
-- `[POST] /sif/erase` - Erase SFP EEPROM
-- `[POST] /sif/stop` - Stop current operation
+```bash
+# Full stack
+docker-compose up --build
 
-### BLE Configuration (Firmware v1.0.10)
-- **Service UUID:** `8E60F02E-F699-4865-B83F-F40501752184`
-- **Write Characteristic:** `9280F26C-A56F-43EA-B769-D5D732E1AC67`
-- **Notify Characteristic:** `DC272A22-43F2-416B-8FA5-63A071542FAC`
-- **Secondary Notify:** `D587C47F-AC6E-4388-A31C-E6CD380BA043` (purpose TBD)
+# Dev mode (hot-reload)
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-### Documentation
-- `docs/BLE_API_SPECIFICATION.md` - Complete API reference
-- `docs/ISSUE_4_IMPLEMENTATION.md` - Implementation details and testing guide
-- `ISSUE_4_RESOLUTION.md` - Summary of resolution
+# ESPHome proxy mode
+docker-compose -f docker-compose.yml -f docker-compose.esphome.yml up
+```
 
-### Reference Artifacts
-- `artifacts/nRFscanner Output.txt`: Sample BLE scanner output
-- `artifacts/support_file_*`: Additional reference captures
-
-### Safety Reminders
-- Test with non-critical modules first
-- Always backup original EEPROM data
-- Firmware v1.0.10 tested - other versions may differ
-- Read-back verification recommended after writes
-- Monitor console logs for errors
-
-## Browser Compatibility
-
-### Supported Browsers
-- **Primary**: Chrome, Edge, Opera (Chromium-based browsers with Web Bluetooth API)
-- **iOS Workaround**: Bluefy – Web BLE Browser (App Store) - provides full Web Bluetooth support on iOS
-- **NOT Supported**: Safari (macOS/iOS), Firefox
-
-### Safari / iOS Status (Updated 2024)
-**Safari does NOT support Web Bluetooth API** - neither on macOS nor iOS, as of Safari 18 / iOS 18.
-
-- **Apple's Position**: "Not Considering" - declined to implement due to privacy/fingerprinting concerns
-- **No Experimental Flags**: There are no hidden settings or experimental features to enable it
-- **iOS Workaround**: Use "Bluefy – Web BLE Browser" from the App Store (third-party browser with Web BLE support)
-- **macOS Workaround**: Use Chrome, Edge, or Opera instead
-
-### Browser Detection & Fallbacks
-- `isWebBluetoothAvailable()` checks for API availability before enabling UI
-- `isSafari()` and `isIOS()` helpers provide appropriate error messages
-- UI gracefully disables with clear instructions when Web Bluetooth is unavailable
-- `acceptAllDevices` fallback for browsers that reject custom UUID filters (not for Safari - API doesn't exist)
-
-## Database Schema Evolution
-
-When adding columns to `sfp_modules` table:
-- Use `database_manager.setup_database()` migration pattern (see `sha256` column addition logic with `PRAGMA table_info` check)
-- **Never** break existing column contracts—add nullable columns or provide defaults
-
-## Community Module Submission Flow (Planned)
-
-1. User reads module → clicks "Upload to Community" → frontend calls `POST /api/submissions`
-2. Backend writes to disk inbox: `/app/data/submissions/{uuid}/eeprom.bin` + `metadata.json`
-3. Maintainers manually review inbox, validate, and PR to `SFPLiberate/modules` repo with CI validation
-4. App fetches `index.json` from GitHub Pages to populate community list (import endpoint pending)
-
-## TODOs and Placeholders
-
-- Functions suffixed with `TODO` (e.g., `loadCommunityModulesTODO()`) are scaffolds—alert user when clicked
-- `COMMUNITY_INDEX_URL` constant awaits real GitHub Pages URL from separate `SFPLiberate/modules` repo
-- ~~Write logic in `writeSfp()` is intentionally incomplete~~ ✅ **COMPLETED** - Full write implementation with chunking, safety warnings, and progress tracking
-- ~~BLE UUIDs in `frontend/script.js` are placeholders~~ ✅ **CONFIGURED** - All UUIDs discovered and set for firmware v1.0.10
-
-## Coding Conventions
-
-### Frontend (JavaScript)
-- Vanilla JS (ES6+), no frameworks
-- Use `async/await` for asynchronous code
-- Prefer `const` and `let` over `var`
-- Functions: `camelCase` (e.g., `handleNotifications`, `parseAndDisplaySfpData`)
-- Constants: `UPPER_SNAKE_CASE` (e.g., `API_BASE_URL`, `SFP_SERVICE_UUID`)
-- Suffix placeholder functions with `TODO` (e.g., `loadCommunityModulesTODO()`)
-
-### Backend (Python)
-- Python 3.11+ features encouraged
-- Type hints preferred (but not enforced)
-- Functions: `snake_case` (e.g., `add_module`, `get_all_modules`)
-- Classes: `PascalCase` (e.g., `SfpModuleIn`, `StatusMessage`)
-- Use context managers for DB connections: `with get_db_connection() as conn:`
-- Use FastAPI's `HTTPException` for API errors
-
-## Common Pitfalls
-
-### BLE Assumptions
-- **Do not assume** BLE can trigger reads/writes unless verified across firmware versions
-- Current code relies on on-device button presses; BLE only captures broadcasts
-- Any code sending commands must be tested with real hardware and documented with firmware version
-
-### Base64 Encoding
-- Frontend sends EEPROM as Base64 in JSON (`eeprom_data_base64` field)
-- Backend decodes to bytes before parsing/storing—**always validate** with `try/except` for malformed data
-
-### NGINX Reverse Proxy Paths
-- Backend endpoints **must** start with `/api/` to match NGINX location block
-- FastAPI route definitions include `/api` prefix explicitly (e.g., `@app.get("/api/modules")`)
-
-## External References
-
-- **SFF-8472 Spec**: EEPROM layout standard for SFP modules
-- **Web Bluetooth API**: [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API)
-- **Official Hardware**: Ubiquiti UACC-SFP-Wizard (ESP32-class SFP programmer, not affiliated with this project)
-
-## Modernization Status
-
-**✅ Backend Modernization: COMPLETE**
-**⏳ Frontend Modernization: PENDING**
-
-### What's Been Implemented
-
-The backend has been completely modernized with:
-- ✅ **SQLAlchemy 2.0 + Alembic:** Type-safe ORM with migrations
-- ✅ **Service/Repository Pattern:** Clean separation of concerns
-- ✅ **Comprehensive Tests:** 70%+ coverage with pytest
-- ✅ **API Versioning:** New `/api/v1/` endpoints
-- ✅ **Structured Logging:** JSON logs with structlog
-- ✅ **Enhanced CI/CD:** Full linting, testing, coverage pipeline
-- ✅ **Pre-commit Hooks:** Automated code quality checks
-- ✅ **Poetry:** Modern dependency management
-
-### Quick Start (New Backend)
+### Backend Development
 
 ```bash
 cd backend
 poetry install
-poetry run alembic upgrade head
-poetry run pytest
-poetry run uvicorn app.main:app --reload
-# Visit http://localhost:8000/api/v1/docs
+poetry run pytest                       # Run tests
+poetry run pytest --cov=app             # With coverage
+poetry run uvicorn app.main:app --reload  # Dev server
 ```
 
-### Documentation
+### Frontend Development
 
-- **Getting Started:** [MODERNIZATION_README.md](MODERNIZATION_README.md)
-- **Migration Guide:** [docs/MIGRATION_GUIDE.md](docs/MIGRATION_GUIDE.md)
-- **Implementation Status:** [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md)
-- **Full Proposal:** [docs/MODERNIZATION_PROPOSAL.md](docs/MODERNIZATION_PROPOSAL.md)
-- **Quick Reference:** [docs/MODERNIZATION_SUMMARY.md](docs/MODERNIZATION_SUMMARY.md)
+```bash
+cd frontend
+npm install
+npm run dev                             # Dev server (port 3000)
+npm run build                           # Production build
+npm run start                           # Serve production build
+```
+
+### Database
+
+```bash
+# Access SQLite database
+docker exec -it sfpliberate-backend sqlite3 /app/data/sfp_library.db
+
+# Common queries
+SELECT id, name, vendor, model FROM sfp_modules;
+SELECT COUNT(*) FROM sfp_modules;
+
+# Reset database
+docker-compose down -v  # Removes volume
+docker-compose up       # Recreates with empty DB
+```
+
+---
+
+## API Endpoints Reference
+
+### Module Management (`/api/v1/modules`)
+
+```
+GET    /api/v1/modules               List all modules
+POST   /api/v1/modules               Create module
+GET    /api/v1/modules/{id}          Get module details
+GET    /api/v1/modules/{id}/eeprom   Get raw EEPROM binary
+DELETE /api/v1/modules/{id}          Delete module
+```
+
+**Example Request:**
+```json
+POST /api/v1/modules
+{
+  "name": "Cisco GLC-SX-MMD",
+  "eeprom_data": "base64-encoded-binary-data..."
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Cisco GLC-SX-MMD",
+  "vendor": "CISCO-AVAGO",
+  "model": "SFBR-5766ALZ",
+  "serial": "AV12345678",
+  "sha256": "abc123...",
+  "created_at": "2025-11-04T10:00:00Z"
+}
+```
+
+### ESPHome Proxy (`/api/v1/esphome/*`)
+
+```
+GET  /api/v1/esphome/status    Service status
+GET  /api/v1/esphome/devices   SSE stream of devices
+POST /api/v1/esphome/connect   Connect & get UUIDs
+WS   /api/v1/esphome/ws        WebSocket for BLE
+```
+
+**WebSocket Messages:**
+```json
+// Connect to device
+{"type": "connect", "mac_address": "AA:BB:CC:DD:EE:FF"}
+
+// Write command
+{"type": "write", "data": "base64-data"}
+
+// Subscribe to notifications
+{"type": "subscribe"}
+
+// Disconnect
+{"type": "disconnect"}
+```
+
+---
+
+## Environment Variables
+
+**Key Variables (.env):**
+
+```bash
+# Deployment Mode
+DEPLOYMENT_MODE=standalone          # or "appwrite"
+
+# ESPHome Proxy
+ESPHOME_PROXY_MODE=false            # true to enable
+
+# SFP Wizard UUIDs (v1.0.10)
+SFP_SERVICE_UUID=8E60F02E-F699-4865-B83F-F40501752184
+SFP_WRITE_CHAR_UUID=9280F26C-A56F-43EA-B769-D5D732E1AC67
+SFP_NOTIFY_CHAR_UUID=DC272A22-43F2-416B-8FA5-63A071542FAC
+
+# Docker Ports
+BACKEND_HOST_PORT=8081
+FRONTEND_HOST_PORT=8080
+
+# Logging
+LOG_LEVEL=info
+
+# Backend
+DATABASE_FILE=/app/data/sfp_library.db
+SUBMISSIONS_DIR=/app/data/submissions
+ENVIRONMENT=production
+
+# Frontend
+BACKEND_URL=http://backend:80
+FRONTEND_PORT=3000
+```
+
+See `.env.example` for complete reference.
+
+---
+
+## Browser Compatibility
+
+### ✅ Supported (Web Bluetooth)
+- Chrome (Desktop, Android, ChromeOS)
+- Edge (Desktop, Android)
+- Opera (Desktop, Android)
+- Bluefy Browser (iOS) - third-party app
+
+### ❌ Not Supported
+- Safari (all platforms) - NO Web Bluetooth support
+  - Apple's position: "Not Considering"
+  - No experimental flags
+- Firefox - No Web Bluetooth support
+
+**Workaround for iOS/Safari:** Enable ESPHome proxy mode
+
+---
+
+## Testing
+
+### Backend Tests
+
+```bash
+cd backend
+poetry run pytest                     # All tests
+poetry run pytest -v                  # Verbose
+poetry run pytest --cov=app           # Coverage
+poetry run pytest tests/test_modules.py  # Specific file
+```
+
+**Test Structure:**
+```
+backend/tests/
+├── test_api/           # API endpoint tests
+├── test_services/      # Service layer tests
+├── test_repositories/  # Repository tests
+└── conftest.py         # Pytest fixtures
+```
+
+### Frontend Tests
+
+```bash
+cd frontend
+npm run test            # All tests
+npm run test:watch      # Watch mode
+npm run test:coverage   # Coverage report
+```
+
+---
+
+## Coding Conventions
+
+### Frontend (TypeScript/React)
+
+- **Components:** PascalCase (e.g., `BleConnectionManager.tsx`)
+- **Functions:** camelCase (e.g., `connectToDevice()`)
+- **Hooks:** `use` prefix (e.g., `useBleConnection()`)
+- **Types:** PascalCase interfaces (e.g., `interface ModuleData`)
+- **Constants:** UPPER_SNAKE_CASE (e.g., `SFP_SERVICE_UUID`)
+- **File naming:** kebab-case for utilities, PascalCase for components
+- **Async/await:** Prefer over `.then()/.catch()`
+
+### Backend (Python)
+
+- **Functions:** snake_case (e.g., `get_module_by_id()`)
+- **Classes:** PascalCase (e.g., `class ModuleRepository`)
+- **Constants:** UPPER_SNAKE_CASE (e.g., `DATABASE_URL`)
+- **Type hints:** Always use (e.g., `def get_module(id: int) -> Module`)
+- **Async functions:** `async def` for I/O operations
+- **Imports:** Group by stdlib, third-party, local
+- **Docstrings:** Google style for functions/classes
+
+---
+
+## Common Pitfalls & Gotchas
+
+### 1. BLE UUID Discovery
+
+**Issue:** UUIDs are firmware-specific and may change between versions
+
+**Solution:**
+- UUIDs cached in localStorage after first connection
+- Can be pre-seeded via .env
+- Discovery flow auto-detects and saves
+- Document firmware version with discovered UUIDs
+
+### 2. Web Bluetooth Browser Requirements
+
+**Issue:** Safari/Firefox don't support Web Bluetooth
+
+**Solution:**
+- Feature detection: `if ('bluetooth' in navigator)`
+- ESPHome proxy fallback for unsupported browsers
+- Clear UI messaging about browser compatibility
+
+### 3. Docker Networking
+
+**Issue:** ESPHome requires mDNS which needs host networking
+
+**Solution:**
+- Use `docker-compose.esphome.yml` override
+- Only frontend needs host mode (backend stays in bridge)
+- Manual proxy config available if mDNS unavailable
+
+### 4. EEPROM Data Encoding
+
+**Issue:** Binary EEPROM data must be Base64 encoded for JSON APIs
+
+**Solution:**
+- Frontend: `btoa()` / `atob()` for encode/decode
+- Backend: `base64.b64decode()` with validation
+- Raw binary served as `application/octet-stream` at `/eeprom` endpoint
+
+### 5. Database State During Development
+
+**Issue:** Schema changes don't auto-apply (no migrations)
+
+**Solution:**
+- For now: `docker-compose down -v && docker-compose up` to reset
+- Post-alpha: Add Alembic for proper migrations
+- `create_all()` is idempotent but doesn't modify existing tables
+
+---
+
+## Documentation Structure
+
+**Core Docs (`/docs`):**
+- `DEPLOYMENT.md` - Deployment guide (all modes)
+- `ESPHOME.md` - ESPHome proxy setup
+- `BLUETOOTH.md` - BLE connection guide
+- `BLE_API_SPECIFICATION.md` - Device protocol reference
+- `ENVIRONMENT_VARIABLES.md` - Configuration reference
+- `APPWRITE.md` - Cloud deployment guide
+- `NEXTJS_FILE_STRUCTURE.md` - Code organization
+- `AUTH_SYSTEM.md` - Authentication (Appwrite mode)
+- `ISSUE_4_IMPLEMENTATION.md` - BLE write protocol discovery
+
+**Keep docs up-to-date** when making architectural changes.
+
+---
+
+## TODOs & Future Work
+
+### Short Term (Pre-Alpha)
+- [ ] Fix Appwrite integration in new backend (repository layer routing)
+- [ ] Add integration tests for ESPHome proxy
+- [ ] Improve error handling in frontend BLE manager
+- [ ] Add frontend type safety checks (strict TypeScript)
+
+### Medium Term (Alpha)
+- [ ] Add Alembic for database migrations
+- [ ] Community module repository (GitHub Pages)
+- [ ] Bulk import/export (CSV/ZIP)
+- [ ] Advanced search and filtering
+
+### Long Term (Beta)
+- [ ] DDM (Digital Diagnostics Monitoring) logging
+- [ ] Multi-firmware version support
+- [ ] Cloud sync for standalone deployments
+- [ ] Mobile app (React Native)
+
+---
+
+## Community & Contributing
+
+This is a pre-alpha project in active development. Contributions welcome!
+
+**Before contributing:**
+1. Check existing issues and PRs
+2. Open an issue to discuss approach for large changes
+3. Follow existing code style and conventions
+4. Add tests for new functionality
+5. Update documentation as needed
+
+**Priority areas:**
+- Testing with different SFP modules
+- Additional firmware version support
+- UI/UX improvements
+- Bug reports with detailed reproduction steps
+
+---
 
 ## Disclaimer
 
-This project is an independent, community-driven effort and is not affiliated with, endorsed by, or supported by Ubiquiti. The SFP Wizard's firmware and BLE behavior may change at any time; this tool may stop working without notice if a firmware update alters the observed interfaces.
+This project is an independent, community-driven effort and is **not affiliated with, endorsed by, or supported by Ubiquiti**. The SFP Wizard's firmware and BLE behavior may change at any time; this tool may stop working without notice if a firmware update alters the observed interfaces.
+
+Use at your own risk. Always test with non-critical modules first.
+
+---
+
+**Last Updated:** November 4, 2025 (Pre-Alpha Cleanup)
+**Architecture:** Next.js 16 + FastAPI + SQLAlchemy 2.0 + ESPHome
+**Status:** Pre-Alpha (active development, no external users)

@@ -2,11 +2,10 @@
 
 import * as React from 'react';
 
-import { Index } from '@/__registry__';
-import { NavUser } from '@/registry/new-york-v4/blocks/sidebar-07/components/nav-user';
-import { TeamSwitcher } from '@/registry/new-york-v4/blocks/sidebar-07/components/team-switcher';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/registry/new-york-v4/ui/collapsible';
-import { Label } from '@/registry/new-york-v4/ui/label';
+import { NavUser } from '@/components/nav-user';
+import { TeamSwitcher } from '@/components/team-switcher';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
 import {
     Sidebar,
     SidebarContent,
@@ -23,7 +22,7 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
     SidebarRail
-} from '@/registry/new-york-v4/ui/sidebar';
+} from '@/components/ui/sidebar';
 
 import {
     AudioWaveform,
@@ -147,8 +146,7 @@ const data = {
                 }
             ]
         }
-    ],
-    components: Object.values(Index).filter((item) => item.type === 'registry:ui')
+    ]
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -204,20 +202,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         ))}
                     </SidebarMenu>
                 </SidebarGroup>
-                <SidebarGroup className='group-data-[collapsible=icon]:hidden'>
-                    <SidebarGroupLabel>Components</SidebarGroupLabel>
-                    <SidebarMenu>
-                        {data.components.map((item) => (
-                            <SidebarMenuItem key={item.name}>
-                                <SidebarMenuButton asChild>
-                                    <a href={`/#${item.name}`}>
-                                        <span>{getComponentName(item.name)}</span>
-                                    </a>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
-                    </SidebarMenu>
-                </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
                 <NavUser user={data.user} />
@@ -225,9 +209,4 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarRail />
         </Sidebar>
     );
-}
-
-function getComponentName(name: string) {
-    // convert kebab-case to title case
-    return name.replace(/-/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }

@@ -4,8 +4,8 @@ import type { ConnectionMode } from '@/lib/ble/types';
 import { BLEProxyClient } from '@/lib/ble/proxyClient';
 import { isWebBluetoothAvailable } from '@/lib/ble/webbluetooth';
 import { getESPHomeClient } from '@/lib/esphome/esphomeClient';
-import { Label } from '@/registry/new-york-v4/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/registry/new-york-v4/ui/select';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function ConnectionModeSelector(props: { value: ConnectionMode; onChange: (v: ConnectionMode) => void }) {
   const [proxyAvailable, setProxyAvailable] = useState(false);

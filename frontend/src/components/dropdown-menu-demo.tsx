@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/registry/new-york-v4/ui/avatar';
-import { Button } from '@/registry/new-york-v4/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -20,7 +20,7 @@ import {
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
     DropdownMenuTrigger
-} from '@/registry/new-york-v4/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
 import {
     BadgeCheckIcon,

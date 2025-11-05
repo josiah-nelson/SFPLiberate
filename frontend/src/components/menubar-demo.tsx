@@ -13,7 +13,7 @@ import {
     MenubarSubContent,
     MenubarSubTrigger,
     MenubarTrigger
-} from '@/registry/new-york-v4/ui/menubar';
+} from '@/components/ui/menubar';
 
 import { HelpCircleIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 

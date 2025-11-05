@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/registry/new-york-v4/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConnectPanel } from '@/components/ble/ConnectPanel';
 import { ConnectionStatus } from '@/components/ble/ConnectionStatus';
 import { ActivityTabs } from '@/components/ble/ActivityTabs';

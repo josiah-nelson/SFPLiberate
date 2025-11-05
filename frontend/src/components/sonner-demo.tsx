@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/registry/new-york-v4/ui/button';
+import { Button } from '@/components/ui/button';
 
 import { toast } from 'sonner';
 

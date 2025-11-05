@@ -1,9 +1,0 @@
-fastapi
-uvicorn[standard]
-pydantic
-slowapi
-appwrite>=6.0.0
-
-# ESPHome Bluetooth Proxy integration
-aioesphomeapi==21.0.0
-zeroconf==0.131.0

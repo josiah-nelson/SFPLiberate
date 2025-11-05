@@ -8,7 +8,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile
       args:
         - PYTHON_VERSION=${PYTHON_VERSION:-3.14}
         - POETRY_VERSION=${POETRY_VERSION:-1.8.5}
@@ -115,6 +115,10 @@ services:
 
     ports:
       - "${FRONTEND_HOST_PORT:-8080}:3000"
+
+    # Network - must be on same network as backend for DNS resolution
+    networks:
+      - sfp-internal
 
     # Resource limits
     deploy:

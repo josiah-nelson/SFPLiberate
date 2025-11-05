@@ -1,4 +1,4 @@
-import { Toggle } from '@/registry/new-york-v4/ui/toggle';
+import { Toggle } from '@/components/ui/toggle';
 
 import { BoldIcon, BookmarkIcon, ItalicIcon, UnderlineIcon } from 'lucide-react';
 

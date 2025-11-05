@@ -2,8 +2,20 @@
 import { useSyncExternalStore } from 'react';
 import { getBleState, subscribe } from '@/lib/ble/store';
 
+// Server snapshot that returns stable initial state
+const getServerSnapshot = () => ({
+  connected: false,
+  connectionType: 'Not Connected' as const,
+  resolvedMode: 'none' as const,
+  deviceVersion: null,
+  sfpPresent: undefined,
+  batteryPct: undefined,
+  rawEepromData: null,
+  logs: [],
+});
+
 export function StatusIndicator() {
-  const st = useSyncExternalStore(subscribe, getBleState, getBleState);
+  const st = useSyncExternalStore(subscribe, getBleState, getServerSnapshot);
   const color = st.connected ? 'bg-emerald-500' : 'bg-zinc-400';
   const label = st.connected ? st.connectionType : 'Disconnected';
   return (

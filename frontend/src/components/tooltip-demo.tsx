@@ -1,5 +1,5 @@
-import { Button } from '@/registry/new-york-v4/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/registry/new-york-v4/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { InfoIcon } from 'lucide-react';
 

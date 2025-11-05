@@ -12,7 +12,7 @@ import {
     NavigationMenuList,
     NavigationMenuTrigger,
     navigationMenuTriggerStyle
-} from '@/registry/new-york-v4/ui/navigation-menu';
+} from '@/components/ui/navigation-menu';
 
 import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from 'lucide-react';
 

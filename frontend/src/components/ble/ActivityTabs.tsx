@@ -1,10 +1,22 @@
 "use client";
 import { useSyncExternalStore } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/registry/new-york-v4/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getBleState, subscribe } from '@/lib/ble/store';
 
+// Server snapshot that returns stable initial state
+const getServerSnapshot = () => ({
+  connected: false,
+  connectionType: 'Not Connected' as const,
+  resolvedMode: 'none' as const,
+  deviceVersion: null,
+  sfpPresent: undefined,
+  batteryPct: undefined,
+  rawEepromData: null,
+  logs: [],
+});
+
 export function ActivityTabs() {
-  const st = useSyncExternalStore(subscribe, getBleState, getBleState);
+  const st = useSyncExternalStore(subscribe, getBleState, getServerSnapshot);
   return (
     <Tabs defaultValue="log" className="w-full">
       <TabsList>

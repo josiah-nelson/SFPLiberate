@@ -1,7 +1,7 @@
 """WebSocket message schemas for ESPHome BLE proxy communication."""
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -29,7 +29,7 @@ class BLEMessageType(str, Enum):
 class BLEConnectMessage(BaseModel):
     """Request to connect to a BLE device."""
 
-    type: str = Field(default=BLEMessageType.CONNECT, const=True)
+    type: Literal["connect"] = Field(default="connect")
     mac_address: str = Field(..., description="Device MAC address")
     service_uuid: Optional[str] = Field(None, description="Optional service UUID filter")
     notify_char_uuid: Optional[str] = Field(None, description="Notify characteristic UUID")
@@ -39,13 +39,13 @@ class BLEConnectMessage(BaseModel):
 class BLEDisconnectMessage(BaseModel):
     """Request to disconnect from current device."""
 
-    type: str = Field(default=BLEMessageType.DISCONNECT, const=True)
+    type: Literal["disconnect"] = Field(default="disconnect")
 
 
 class BLEWriteMessage(BaseModel):
     """Request to write data to a characteristic."""
 
-    type: str = Field(default=BLEMessageType.WRITE, const=True)
+    type: Literal["write"] = Field(default="write")
     characteristic_uuid: str = Field(..., description="Target characteristic UUID")
     data: str = Field(..., description="Base64-encoded data to write")
     with_response: bool = Field(default=True, description="Wait for write confirmation")
@@ -54,14 +54,14 @@ class BLEWriteMessage(BaseModel):
 class BLESubscribeMessage(BaseModel):
     """Request to subscribe to notifications from a characteristic."""
 
-    type: str = Field(default=BLEMessageType.SUBSCRIBE, const=True)
+    type: Literal["subscribe"] = Field(default="subscribe")
     characteristic_uuid: str = Field(..., description="Characteristic UUID to subscribe to")
 
 
 class BLEUnsubscribeMessage(BaseModel):
     """Request to unsubscribe from a characteristic."""
 
-    type: str = Field(default=BLEMessageType.UNSUBSCRIBE, const=True)
+    type: Literal["unsubscribe"] = Field(default="unsubscribe")
     characteristic_uuid: str = Field(..., description="Characteristic UUID to unsubscribe from")
 
 
@@ -71,7 +71,7 @@ class BLEUnsubscribeMessage(BaseModel):
 class BLEConnectedMessage(BaseModel):
     """Notification that connection succeeded."""
 
-    type: str = Field(default=BLEMessageType.CONNECTED, const=True)
+    type: Literal["connected"] = Field(default="connected")
     device_name: Optional[str] = Field(None, description="Device name")
     device_address: str = Field(..., description="Device MAC address")
     service_uuid: str = Field(..., description="Primary service UUID")
@@ -83,14 +83,14 @@ class BLEConnectedMessage(BaseModel):
 class BLEDisconnectedMessage(BaseModel):
     """Notification that device disconnected."""
 
-    type: str = Field(default=BLEMessageType.DISCONNECTED, const=True)
+    type: Literal["disconnected"] = Field(default="disconnected")
     reason: str = Field(..., description="Disconnect reason")
 
 
 class BLENotificationMessage(BaseModel):
     """BLE characteristic notification received."""
 
-    type: str = Field(default=BLEMessageType.NOTIFICATION, const=True)
+    type: Literal["notification"] = Field(default="notification")
     characteristic_uuid: str = Field(..., description="Source characteristic UUID")
     data: str = Field(..., description="Base64-encoded notification data")
 
@@ -98,7 +98,7 @@ class BLENotificationMessage(BaseModel):
 class BLEStatusMessage(BaseModel):
     """General status message."""
 
-    type: str = Field(default=BLEMessageType.STATUS, const=True)
+    type: Literal["status"] = Field(default="status")
     connected: bool = Field(..., description="Connection status")
     device_name: Optional[str] = Field(None, description="Connected device name")
     message: str = Field(..., description="Status message")
@@ -107,6 +107,6 @@ class BLEStatusMessage(BaseModel):
 class BLEErrorMessage(BaseModel):
     """Error message."""
 
-    type: str = Field(default=BLEMessageType.ERROR, const=True)
+    type: Literal["error"] = Field(default="error")
     error: str = Field(..., description="Error description")
     details: Optional[dict] = Field(None, description="Additional error details")

@@ -1,4 +1,4 @@
-import { Button } from '@/registry/new-york-v4/ui/button';
+import { Button } from '@/components/ui/button';
 
 import { ArrowRightIcon, Loader2Icon, SendIcon } from 'lucide-react';
 

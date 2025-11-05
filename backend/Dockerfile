@@ -1,31 +1,29 @@
 # Multi-stage Docker build for production-ready backend
 
 # Builder stage
-FROM python:3.11-slim as builder
+ARG PYTHON_VERSION=3.14
+FROM python:${PYTHON_VERSION}-slim as builder
+
+ARG POETRY_VERSION=1.8.5
+ENV POETRY_VERSION=${POETRY_VERSION}
 
 WORKDIR /build
 
 # Install Poetry
-RUN pip install --no-cache-dir poetry==1.7.1
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 # Copy dependency files
 COPY pyproject.toml poetry.lock* ./
 
-# Export requirements with BLE proxy extras (for faster subsequent builds)
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --extras ble-proxy
+# Export requirements (for faster subsequent builds)
+# Include ESPHome proxy extras
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --extras esphome-proxy
 
 # Production stage
-FROM python:3.11-slim
+FROM python:${PYTHON_VERSION}-slim
 
 WORKDIR /app
-
-# Install system dependencies for BLE (BlueZ, D-Bus)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    bluez \
-    libglib2.0-0 \
-    libdbus-1-3 \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements from builder
 COPY --from=builder /build/requirements.txt .
@@ -35,19 +33,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app ./app
-COPY alembic ./alembic
-COPY alembic.ini .
 
 # Create data directory
 RUN mkdir -p /app/data
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:80/health')" || exit 1
+  CMD python -c "import os, urllib.request; port=os.environ.get('PORT','80'); urllib.request.urlopen(f'http://localhost:{port}/health').read()" || exit 1
+
+# Default port
+ENV PORT=80
 
 # Expose port
 EXPOSE 80
 
-# Run migrations and start server
-CMD alembic upgrade head && \
-    uvicorn app.main:app --host 0.0.0.0 --port 80
+# Start server (database tables created via create_all on startup)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]

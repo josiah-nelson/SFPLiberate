@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/registry/new-york-v4/ui/input-otp';
-import { Label } from '@/registry/new-york-v4/ui/label';
+import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp';
+import { Label } from '@/components/ui/label';
 
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 
