@@ -3,6 +3,8 @@ version: "1.0.0"
 slug: "sfpliberate"
 description: "Bluetooth companion for Ubiquiti SFP Wizard - capture, clone, and manage SFP module EEPROM profiles"
 url: "https://github.com/josiah-nelson/SFPLiberate"
+codenotary: "josiah-nelson@users.noreply.github.com"
+stage: experimental
 arch:
   - aarch64
   - amd64
@@ -14,14 +16,17 @@ startup: services
 boot: auto
 ingress: true
 ingress_port: 3000
+ingress_entry: "/"
 panel_icon: mdi:ethernet
 panel_title: SFPLiberate
+webui: "http://[HOST]:[PORT:3000]"
 
 # Bluetooth access required
 host_dbus: true
 hassio_role: default
 hassio_api: true
 homeassistant_api: true
+auth_api: true
 
 # Persistence
 map:

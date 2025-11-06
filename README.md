@@ -84,7 +84,7 @@ The Ubiquiti SFP Wizard is a powerful standalone device, but has limitations:
 - Bluetooth adapter OR ESPHome Bluetooth proxy
 - SFP Wizard firmware v1.0.10+
 
-See [homeassistant/README.md](homeassistant/README.md) for complete add-on documentation.
+See [sfpliberate/README.md](sfpliberate/README.md) for complete add-on documentation.
 
 ---
 

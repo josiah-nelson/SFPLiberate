@@ -431,7 +431,7 @@ The add-on communicates with:
 
 ## Version History
 
-See [CHANGELOG](../homeassistant/CHANGELOG.md) for version history and release notes.
+See [CHANGELOG](../sfpliberate/CHANGELOG.md) for version history and release notes.
 
 ## License
 

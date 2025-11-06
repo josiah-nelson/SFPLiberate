@@ -6,7 +6,7 @@ on:
       - main
       - develop
     paths:
-      - 'homeassistant/**'
+      - 'sfpliberate/**'
       - 'backend/**'
       - 'frontend/**'
       - '.github/workflows/ha-addon-build.yml'
@@ -15,7 +15,7 @@ on:
       - main
       - develop
     paths:
-      - 'homeassistant/**'
+      - 'sfpliberate/**'
       - 'backend/**'
       - 'frontend/**'
   release:
@@ -34,7 +34,7 @@ jobs:
       - name: Validate config.yaml
         uses: home-assistant/actions/config-check@master
         with:
-          path: ./homeassistant
+          path: ./sfpliberate
 
   # Build add-on for all architectures
   build:
@@ -55,7 +55,7 @@ jobs:
       - name: Get version from config.yaml
         id: version
         run: |
-          VERSION=$(grep 'version:' homeassistant/config.yaml | awk '{print $2}' | tr -d '"')
+          VERSION=$(grep 'version:' sfpliberate/config.yaml | awk '{print $2}' | tr -d '"')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
@@ -121,10 +121,10 @@ jobs:
             \"url\": \"https://github.com/${{ github.repository }}\",
             \"maintainer\": \"${{ github.repository_owner }}\",
             \"last_updated\": \"$TIMESTAMP\"
-          }" > homeassistant/repository.json
+          }" > repository.json
 
       - name: Commit updated repository.json
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update repository.json timestamp [skip ci]"
-          file_pattern: homeassistant/repository.json
+          file_pattern: repository.json
