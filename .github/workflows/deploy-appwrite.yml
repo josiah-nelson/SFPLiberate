@@ -166,8 +166,9 @@ jobs:
 
           # Create deployment structure
           mkdir -p deploy
+          mkdir -p deploy/.next
           cp -r .next/standalone/* deploy/
-          cp -r .next/static deploy/.next/static
+          cp -r .next/static deploy/.next
           cp -r public deploy/public
 
           # Package for upload
