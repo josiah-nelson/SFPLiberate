@@ -1,0 +1,11 @@
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Starting FastAPI backend..."
+
+cd /app/backend || exit 1
+
+# Start backend with uvicorn
+exec python3 -m uvicorn app.main:app \
+  --host 0.0.0.0 \
+  --port 80 \
+  --log-level "${LOG_LEVEL:-info}"

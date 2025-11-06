@@ -10,19 +10,22 @@ const withBundleAnalyzer = initializeBundleAnalyzer({
 });
 
 /**
- * Dual Deployment Configuration
+ * Multi-Mode Deployment Configuration
  *
- * Supports two deployment modes:
+ * Supports three deployment modes:
  * 1. standalone: Docker deployment with API proxy (default)
- * 2. appwrite: Static export for Appwrite cloud hosting
+ * 2. homeassistant: Home Assistant add-on with ingress support
+ * 3. appwrite: Static export for Appwrite cloud hosting
  *
  * Deployment mode is automatically detected:
  * - Appwrite Sites: Presence of APPWRITE_SITE_API_ENDPOINT
+ * - Home Assistant: DEPLOYMENT_MODE=homeassistant
  * - Standalone: Default (Docker deployment)
  */
 const isAppwriteSite = !!(process.env.APPWRITE_SITE_API_ENDPOINT || process.env.APPWRITE_SITE_PROJECT_ID);
 const deploymentMode = isAppwriteSite ? 'appwrite' : (process.env.DEPLOYMENT_MODE || 'standalone').toLowerCase();
 const isStandalone = deploymentMode === 'standalone';
+const isHomeAssistant = deploymentMode === 'homeassistant';
 const isAppwrite = deploymentMode === 'appwrite';
 
 const require = createRequire(import.meta.url);
@@ -30,12 +33,18 @@ const standaloneAppwriteAlias = require.resolve('./src/lib/appwrite-standalone')
 
 // https://nextjs.org/docs/pages/api-reference/next-config-js
 const nextConfig: NextConfig = {
-    // Output mode: standalone for Docker, export for Appwrite
-    output: isStandalone ? 'standalone' : isAppwrite ? 'export' : undefined,
+    // Output mode: standalone for Docker/HA, export for Appwrite
+    output: (isStandalone || isHomeAssistant) ? 'standalone' : isAppwrite ? 'export' : undefined,
 
     env: {
-        NEXT_PUBLIC_DEPLOYMENT_MODE: isStandalone ? 'standalone' : isAppwrite ? 'appwrite' : deploymentMode,
+        NEXT_PUBLIC_DEPLOYMENT_MODE: deploymentMode,
     },
+
+    // Base path for Home Assistant ingress (auto-detected at runtime)
+    basePath: process.env.INGRESS_PATH || '',
+
+    // Asset prefix for ingress routing
+    assetPrefix: process.env.INGRESS_PATH || '',
 
     modularizeImports: {
         '@radix-ui/react-icons': {
@@ -43,10 +52,13 @@ const nextConfig: NextConfig = {
         },
     },
 
-    // Rewrites for standalone mode (proxy /api to backend)
-    ...(isStandalone && {
+    // Rewrites for standalone and HA modes (proxy /api to backend)
+    ...((isStandalone || isHomeAssistant) && {
         async rewrites() {
-            const backendUrl = process.env.BACKEND_URL || 'http://backend:80';
+            // HA add-on uses localhost, standalone uses docker DNS
+            const backendUrl = isHomeAssistant
+                ? 'http://localhost:80'
+                : (process.env.BACKEND_URL || 'http://backend:80');
             return [
                 {
                     source: '/api/:path*',
@@ -76,7 +88,7 @@ const nextConfig: NextConfig = {
         turbopackFileSystemCacheForDev: true,
     },
 
-    turbopack: isStandalone
+    turbopack: (isStandalone || isHomeAssistant)
         ? {
               resolveAlias: {
                   appwrite$: standaloneAppwriteAlias,
@@ -85,7 +97,7 @@ const nextConfig: NextConfig = {
         : undefined,
 
     webpack: (config) => {
-        if (isStandalone) {
+        if (isStandalone || isHomeAssistant) {
             config.resolve = config.resolve || {};
             config.resolve.alias = config.resolve.alias || {};
             config.resolve.alias['appwrite$'] = standaloneAppwriteAlias;

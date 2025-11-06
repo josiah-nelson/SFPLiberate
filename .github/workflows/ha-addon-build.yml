@@ -1,0 +1,130 @@
+name: Build Home Assistant Add-On
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'homeassistant/**'
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/ha-addon-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'homeassistant/**'
+      - 'backend/**'
+      - 'frontend/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  # Lint and validate add-on configuration
+  lint:
+    name: Lint Add-On Config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate config.yaml
+        uses: home-assistant/actions/config-check@master
+        with:
+          path: ./homeassistant
+
+  # Build add-on for all architectures
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch:
+          - aarch64
+          - amd64
+          - armhf
+          - armv7
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from config.yaml
+        id: version
+        run: |
+          VERSION=$(grep 'version:' homeassistant/config.yaml | awk '{print $2}' | tr -d '"')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build add-on (PR)
+        if: github.event_name == 'pull_request'
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }} \
+            --target homeassistant \
+            --test
+
+      - name: Build and push add-on (main/develop)
+        if: github.event_name != 'pull_request' && github.event_name != 'release'
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }} \
+            --target homeassistant \
+            --docker-hub ghcr.io/${{ github.repository_owner }} \
+            --image sfpliberate-addon-{arch} \
+            --version dev
+
+      - name: Build and push add-on (release)
+        if: github.event_name == 'release'
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }} \
+            --target homeassistant \
+            --docker-hub ghcr.io/${{ github.repository_owner }} \
+            --image sfpliberate-addon-{arch} \
+            --version ${{ steps.version.outputs.version }}
+
+  # Update repository.json after successful build
+  update-repository:
+    name: Update Repository Metadata
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update repository.json timestamp
+        run: |
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "{
+            \"name\": \"SFPLiberate Add-on Repository\",
+            \"url\": \"https://github.com/${{ github.repository }}\",
+            \"maintainer\": \"${{ github.repository_owner }}\",
+            \"last_updated\": \"$TIMESTAMP\"
+          }" > homeassistant/repository.json
+
+      - name: Commit updated repository.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update repository.json timestamp [skip ci]"
+          file_pattern: homeassistant/repository.json

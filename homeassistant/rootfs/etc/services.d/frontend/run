@@ -1,0 +1,12 @@
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Starting Next.js frontend..."
+
+cd /app/frontend || exit 1
+
+# Set Node.js to use port 3000 (for ingress)
+export PORT=3000
+export HOSTNAME="0.0.0.0"
+
+# Start Next.js server
+exec node server.js
