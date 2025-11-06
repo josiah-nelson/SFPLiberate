@@ -1,7 +1,7 @@
 # ============================================================================
 # Stage 1: Backend build
 # ============================================================================
-FROM python:3.14-slim AS backend-build
+FROM python:3.12-slim AS backend-build
 
 WORKDIR /backend
 
@@ -46,7 +46,8 @@ RUN npm run build
 # ============================================================================
 # Stage 3: Final runtime image
 # ============================================================================
-FROM ghcr.io/hassio-addons/base:15.0.0
+ARG BUILD_FROM
+FROM ${BUILD_FROM}
 
 # Install runtime dependencies
 RUN apk add --no-cache \
@@ -62,7 +63,7 @@ RUN apk add --no-cache \
 
 # Copy backend from build stage
 COPY --from=backend-build /backend/app /app/backend/app
-COPY --from=backend-build /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=backend-build /usr/local/lib/python3.12/site-packages /usr/lib/python3.12/site-packages
 
 # Copy frontend from build stage
 COPY --from=frontend-build /frontend/.next/standalone /app/frontend
