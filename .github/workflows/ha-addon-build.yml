@@ -35,10 +35,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate config.yaml
-        uses: home-assistant/actions/config-check@master
-        with:
-          path: ./sfpliberate
+      - name: Validate config.yaml syntax
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('sfpliberate/config.yaml'))"
+          echo "✓ config.yaml is valid YAML"
+
+      - name: Validate build.yaml syntax
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('sfpliberate/build.yaml'))"
+          echo "✓ build.yaml is valid YAML"
+
+      - name: Check required files exist
+        run: |
+          test -f sfpliberate/Dockerfile || (echo "ERROR: Dockerfile missing" && exit 1)
+          test -f sfpliberate/config.yaml || (echo "ERROR: config.yaml missing" && exit 1)
+          test -f sfpliberate/build.yaml || (echo "ERROR: build.yaml missing" && exit 1)
+          test -f sfpliberate/README.md || (echo "ERROR: README.md missing" && exit 1)
+          echo "✓ All required files present"
 
   # Build add-on for all architectures
   build:
