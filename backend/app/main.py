@@ -24,32 +24,52 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging(settings.log_level, settings.log_json)
     logger = structlog.get_logger()
-    logger.info("application_startup", version=settings.version)
+    logger.info("application_startup", version=settings.version, ha_addon_mode=settings.ha_addon_mode)
 
     await init_db()
     logger.info("database_initialized")
 
-    # Start ESPHome proxy service if enabled
-    if settings.esphome_proxy_mode:
+    # Initialize Bluetooth service based on deployment mode
+    bluetooth_service = None
+
+    if settings.ha_addon_mode:
+        # Home Assistant Add-On mode: Use HA Bluetooth API
+        try:
+            from app.services.ha_bluetooth import HomeAssistantBluetoothClient
+            from app.api.v1.ha_bluetooth import set_ha_bluetooth_client
+
+            bluetooth_service = HomeAssistantBluetoothClient(
+                ha_api_url=settings.ha_api_url,
+                ha_ws_url=settings.ha_ws_url,
+                supervisor_token=settings.supervisor_token,
+                device_patterns=settings.device_name_patterns,
+            )
+            await bluetooth_service.start()
+            set_ha_bluetooth_client(bluetooth_service)
+            logger.info("ha_bluetooth_client_started", patterns=settings.device_name_patterns)
+
+        except Exception as e:
+            logger.error("ha_bluetooth_client_startup_failed", error=str(e), exc_info=True)
+
+    elif settings.esphome_proxy_mode:
+        # Standalone mode: Use ESPHome proxy service
         try:
             from app.services.esphome import ESPHomeProxyService
-            service = ESPHomeProxyService()
-            await service.start()
+            bluetooth_service = ESPHomeProxyService()
+            await bluetooth_service.start()
             logger.info("esphome_proxy_service_started")
         except Exception as e:
-            logger.error("esphome_proxy_service_startup_failed", error=str(e))
+            logger.error("esphome_proxy_service_startup_failed", error=str(e), exc_info=True)
 
     yield
 
     # Shutdown
-    if settings.esphome_proxy_mode:
+    if bluetooth_service:
         try:
-            from app.services.esphome import ESPHomeProxyService
-            service = ESPHomeProxyService()
-            await service.stop()
-            logger.info("esphome_proxy_service_stopped")
+            await bluetooth_service.stop()
+            logger.info("bluetooth_service_stopped")
         except Exception as e:
-            logger.error("esphome_proxy_service_shutdown_failed", error=str(e))
+            logger.error("bluetooth_service_shutdown_failed", error=str(e))
 
     logger.info("application_shutdown")
 

@@ -172,7 +172,83 @@ docker-compose logs -f backend     # View backend logs
 
 ---
 
-### 3. ESPHome Proxy Mode (Optional)
+### 3. Home Assistant Add-On
+
+**Purpose:** Simplified deployment for Home Assistant users
+
+**Stack:**
+- Frontend: Next.js standalone (ingress at port 3000)
+- Backend: FastAPI + SQLite (port 80)
+- Database: SQLite in `/config/sfpliberate/`
+- Bluetooth: HA Bluetooth API (not mDNS)
+
+**Architecture Differences:**
+- Backend uses `HomeAssistantBluetoothClient` instead of `ESPHomeProxyService`
+- No mDNS discovery - queries HA's `/api/states` for bluetooth entities
+- Auto-discovery via pattern matching on device names
+- Single-click connection flow (no UUID entry needed)
+- Single container (backend + frontend) with s6-overlay process supervision
+
+**Installation:**
+```bash
+# Via "Add to Home Assistant" button in README
+# OR manually add repository: https://github.com/josiah-nelson/SFPLiberate
+```
+
+**Environment:**
+- `HA_ADDON_MODE=true` (set in run.sh)
+- `DEPLOYMENT_MODE=homeassistant`
+- `DATABASE_FILE=/config/sfpliberate/sfp_library.db`
+- `SUPERVISOR_TOKEN` (provided by HA)
+
+**Configuration:**
+Users configure via HA UI (Settings → Add-ons → SFPLiberate → Configuration):
+- `log_level`: Logging verbosity
+- `auto_discover`: Enable/disable auto-discovery
+- `device_name_patterns`: List of patterns to match (e.g., ["SFP", "Wizard"])
+- `connection_timeout`: BLE connection timeout
+- `device_expiry_seconds`: How long to keep stale devices
+
+**Development:**
+```bash
+# Build add-on locally
+docker build -f homeassistant/Dockerfile -t sfpliberate-addon .
+
+# Test in dev mode (requires running HA instance)
+docker-compose -f docker-compose.ha-dev.yml up
+```
+
+**Key Files:**
+- `homeassistant/config.yaml` - Add-on metadata & schema
+- `homeassistant/Dockerfile` - Multi-stage build
+- `homeassistant/run.sh` - Startup script
+- `homeassistant/rootfs/etc/services.d/` - s6-overlay services
+- `backend/app/services/ha_bluetooth/` - HA Bluetooth client
+- `backend/app/api/v1/ha_bluetooth.py` - HA Bluetooth endpoints
+
+**API Endpoints:**
+```
+GET  /api/v1/ha-bluetooth/status    # Service status
+GET  /api/v1/ha-bluetooth/devices   # Auto-discovered devices
+POST /api/v1/ha-bluetooth/connect   # Connect & get UUIDs
+```
+
+**Bluetooth Discovery Flow:**
+1. Backend polls HA's `/api/states` every 5 seconds
+2. Filters for entities with `bluetooth` or `ble` in source
+3. Matches device names against configured patterns
+4. Updates cached device list
+5. WebSocket listener provides real-time updates
+
+**Ingress Integration:**
+- Add-on exposes frontend at port 3000
+- HA's ingress proxy handles authentication & routing
+- Users access via Settings → Add-ons → SFPLiberate → OPEN WEB UI
+- No port configuration needed
+
+---
+
+### 4. ESPHome Proxy Mode (Optional)
 
 **Purpose:** BLE proxy for iOS/Safari users without Web Bluetooth
 

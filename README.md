@@ -61,13 +61,40 @@ The Ubiquiti SFP Wizard is a powerful standalone device, but has limitations:
 
 ### Deployment Modes
 
-**1. Standalone (Docker)**
+**1. Home Assistant Add-On (NEW!) 🏠**
+
+**Easiest setup for Home Assistant users!**
+
+[![Add to Home Assistant](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fjosiah-nelson%2FSFPLiberate)
+
+- ✅ **One-click installation** - No Docker knowledge required
+- ✅ **Automatic Bluetooth discovery** - Leverages HA's Bluetooth integration
+- ✅ **ESPHome integration** - Uses your existing BLE proxies
+- ✅ **Built-in backup** - Included in HA backups automatically
+- ✅ **Web UI via Ingress** - No port conflicts or reverse proxy needed
+
+**Installation:**
+1. Click the "Add to Home Assistant" button above
+2. Install the "SFPLiberate" add-on
+3. Start the add-on
+4. Click "OPEN WEB UI"
+
+**Requirements:**
+- Home Assistant OS or Supervised
+- Bluetooth adapter OR ESPHome Bluetooth proxy
+- SFP Wizard firmware v1.0.10+
+
+See [homeassistant/README.md](homeassistant/README.md) for complete add-on documentation.
+
+---
+
+**2. Standalone (Docker)**
 - Full stack runs locally
 - SQLite database
 - Web Bluetooth in browser (Chrome/Edge/Opera)
 - Optional ESPHome proxy for iOS/Safari
 
-**2. Appwrite Cloud**
+**3. Appwrite Cloud**
 - Frontend hosted on Appwrite Sites (static export)
 - Backend as Appwrite Functions
 - Appwrite Database for storage

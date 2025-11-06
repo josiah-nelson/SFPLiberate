@@ -65,6 +65,16 @@ class Settings(BaseSettings):
     # Path to bind-mounted env file for persistence (self-hosted)
     ble_env_path: str | None = "/app/.env"
 
+    # Home Assistant Add-On Mode
+    ha_addon_mode: bool = False
+    ha_api_url: str = "http://supervisor/core/api"
+    ha_ws_url: str = "ws://supervisor/core/websocket"
+    supervisor_token: str | None = None
+    device_name_patterns: list[str] = ["SFP", "Wizard"]
+    auto_discover: bool = True
+    connection_timeout: int = 30
+    device_expiry_seconds: int = 300
+
 
 @lru_cache
 def get_settings() -> Settings:
