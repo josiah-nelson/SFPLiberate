@@ -196,6 +196,7 @@ jobs:
           # Create deployment using Sites API
           node << 'EOF'
           const sdk = require('node-appwrite');
+          const { InputFile } = require('node-appwrite/inputFile');
           const fs = require('fs');
           
           const client = new sdk.Client()
@@ -209,7 +210,7 @@ jobs:
             try {
               console.log('� Uploading deployment...');
               
-              const code = sdk.InputFile.fromPath('./code.tar.gz', 'code.tar.gz');
+              const code = InputFile.fromPath('./code.tar.gz', 'code.tar.gz');
               
               const deployment = await sites.createDeployment({
                 siteId: process.env.APPWRITE_SITE_ID,
