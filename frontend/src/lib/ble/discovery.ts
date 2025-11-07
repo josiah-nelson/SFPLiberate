@@ -49,7 +49,7 @@ export async function discoverAndConnectSfpDevice(): Promise<DiscoveryResult> {
 
 /**
  * Request a device from the user with SFP name filter
- * Uses acceptAllDevices since service UUIDs are unknown at this point
+ * Uses standard GATT services in optionalServices to allow service enumeration
  */
 async function requestSfpDevice(): Promise<any> {
   const bluetooth = (navigator as any).bluetooth;
@@ -57,6 +57,13 @@ async function requestSfpDevice(): Promise<any> {
   if (!bluetooth || typeof bluetooth.requestDevice !== 'function') {
     throw createError('not-supported', 'Web Bluetooth API is not available in this browser.');
   }
+
+  // Standard GATT service UUIDs that must be in optionalServices to allow service enumeration
+  // These are always available and allow us to discover all other services
+  const standardServices = [
+    '00001800-0000-1000-8000-00805f9b34fb', // Generic Access (GAP)
+    '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute (GATT)
+  ];
 
   try {
     // Try with name filter first (best UX)
@@ -66,7 +73,7 @@ async function requestSfpDevice(): Promise<any> {
         { namePrefix: 'sfp' },
         { namePrefix: 'Sfp' },
       ],
-      optionalServices: [], // Will enumerate all services after connection
+      optionalServices: standardServices, // Allow service enumeration
     });
 
     if (!device) {
@@ -85,7 +92,7 @@ async function requestSfpDevice(): Promise<any> {
       console.warn('Name filter failed, trying acceptAllDevices fallback');
       const device = await bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: [],
+        optionalServices: standardServices, // Allow service enumeration
       });
 
       // Check if selected device name contains 'sfp'
@@ -191,11 +198,17 @@ export async function requestDeviceWithProfile(profile: SfpProfile): Promise<any
     throw createError('not-supported', 'Web Bluetooth API is not available in this browser.');
   }
 
+  // Standard GATT services plus the discovered service
+  const standardServices = [
+    '00001800-0000-1000-8000-00805f9b34fb', // Generic Access (GAP)
+    '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute (GATT)
+  ];
+
   try {
     // Request with known service UUID
     const device = await bluetooth.requestDevice({
       filters: [{ services: [profile.serviceUuid] }],
-      optionalServices: [profile.serviceUuid],
+      optionalServices: [...standardServices, profile.serviceUuid],
     });
 
     return device;
