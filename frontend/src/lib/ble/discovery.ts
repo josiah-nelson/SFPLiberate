@@ -3,7 +3,7 @@ import type { SfpProfile } from './types';
 
 /**
  * Simplified Discovery API for SFP Wizard devices
- * 
+ *
  * Approach:
  * 1. Use requestDevice with name filters (widely supported)
  * 2. After user selects device, enumerate all services/characteristics
