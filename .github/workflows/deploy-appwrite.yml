@@ -165,11 +165,29 @@ jobs:
           echo "📦 Packaging Next.js standalone build..."
 
           # Create deployment structure
+          # Next.js standalone output structure:
+          # .next/standalone/frontend/  <- Contains server.js and .next/ directory
+          # .next/static/               <- CSS, JS chunks (needs to be copied into standalone)
+          # public/                     <- Static assets (needs to be copied into standalone)
+
           mkdir -p deploy
-          mkdir -p deploy/.next
+
+          # Copy standalone output (includes server.js and .next/ server files)
           cp -r .next/standalone/* deploy/
-          cp -r .next/static deploy/.next
-          cp -r public deploy/public
+
+          # Copy static assets INTO the frontend/.next/static directory
+          mkdir -p deploy/frontend/.next/static
+          cp -r .next/static/* deploy/frontend/.next/static/
+
+          # Copy public assets INTO the frontend/public directory
+          cp -r public deploy/frontend/public
+
+          echo "📋 Verifying deployment structure..."
+          ls -la deploy/
+          ls -la deploy/frontend/
+          ls -la deploy/frontend/.next/
+          echo "Static assets:"
+          ls -la deploy/frontend/.next/static/ | head -10
 
           # Package for upload
           cd deploy
