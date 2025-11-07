@@ -1,6 +1,6 @@
 """Pydantic schemas for Home Assistant Bluetooth integration."""
 
-from typing import Optional, List
+from typing import List
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -11,8 +11,11 @@ class HABluetoothDevice(BaseModel):
     mac: str = Field(..., description="Device MAC address")
     name: str = Field(..., description="Device friendly name")
     rssi: int = Field(-100, description="Signal strength (RSSI)")
-    source: str = Field("hass_bluetooth", description="Source of discovery (esphome_proxy, hass_bluetooth, etc.)")
-    last_seen: Optional[str] = Field(None, description="Last seen timestamp from HA")
+    source: str = Field(
+        "hass_bluetooth",
+        description="Source of discovery (esphome_proxy, hass_bluetooth, etc.)"
+    )
+    last_seen: str | None = Field(None, description="Last seen timestamp from HA")
 
     class Config:
         json_schema_extra = {
@@ -45,8 +48,8 @@ class HADeviceConnectionResponse(BaseModel):
     service_uuid: str = Field(..., description="Primary GATT service UUID")
     notify_char_uuid: str = Field(..., description="Notify characteristic UUID")
     write_char_uuid: str = Field(..., description="Write characteristic UUID")
-    device_name: Optional[str] = Field(None, description="Device friendly name")
-    source: Optional[str] = Field(None, description="Source that was used for connection")
+    device_name: str | None = Field(None, description="Device friendly name")
+    source: str | None = Field(None, description="Source that was used for connection")
 
     class Config:
         json_schema_extra = {

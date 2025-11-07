@@ -1,6 +1,5 @@
 """Unit tests for SFP parser."""
 
-import pytest
 from app.services.sfp_parser import parse_sfp_data
 
 
