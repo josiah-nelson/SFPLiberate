@@ -5,9 +5,15 @@ ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22
 # ============================================================================
 # Stage 1: Backend build
 # ============================================================================
-FROM python:3.12-slim AS backend-build
+# Use build platform (not target) to avoid slow QEMU cross-compilation
+FROM --platform=$BUILDPLATFORM python:3.12-slim AS backend-build
 
 WORKDIR /backend
+
+# Install build dependencies for compiling Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN pip install --no-cache-dir poetry==1.8.5
@@ -27,7 +33,8 @@ COPY backend/app /backend/app
 # ============================================================================
 # Stage 2: Frontend build
 # ============================================================================
-FROM node:22-alpine AS frontend-build
+# Use build platform (not target) to avoid slow QEMU cross-compilation
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-build
 
 WORKDIR /frontend
 
