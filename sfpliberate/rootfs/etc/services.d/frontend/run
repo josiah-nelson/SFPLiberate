@@ -56,7 +56,7 @@ bashio::log.info "  Log level: ${LOG_LEVEL}"
 bashio::log.info "Waiting for backend to be ready..."
 BACKEND_READY=false
 for i in {1..30}; do
-  if curl -sf http://localhost:80/api/health >/dev/null 2>&1; then
+  if curl -sf http://localhost:80/health >/dev/null 2>&1; then
     BACKEND_READY=true
     bashio::log.info "Backend is ready!"
     break
