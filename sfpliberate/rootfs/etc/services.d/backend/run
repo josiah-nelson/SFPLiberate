@@ -39,6 +39,7 @@ BLUETOOTH_ADAPTER=$(bashio::config 'bluetooth_adapter' 'default')
 ENABLE_METRICS=$(bashio::config 'enable_metrics' 'false')
 DATABASE_BACKUP_ENABLED=$(bashio::config 'database_backup_enabled' 'true')
 DATABASE_BACKUP_INTERVAL=$(bashio::config 'database_backup_interval' '24')
+DATABASE_BACKUP_MAX_COUNT=$(bashio::config 'database_backup_max_count' '7')
 ENABLE_DEBUG_BLE=$(bashio::config 'enable_debug_ble' 'false')
 
 # Get device_name_patterns as array
@@ -59,6 +60,7 @@ export BLUETOOTH_ADAPTER
 export ENABLE_METRICS
 export DATABASE_BACKUP_ENABLED
 export DATABASE_BACKUP_INTERVAL
+export DATABASE_BACKUP_MAX_COUNT
 export DATABASE_BACKUP_PATH=/config/sfpliberate/backups
 export ENABLE_DEBUG_BLE
 
@@ -75,6 +77,7 @@ bashio::log.info "  Database: ${DATABASE_FILE}"
 bashio::log.info "  Backup enabled: ${DATABASE_BACKUP_ENABLED}"
 if [[ "${DATABASE_BACKUP_ENABLED}" == "true" ]]; then
   bashio::log.info "  Backup interval: ${DATABASE_BACKUP_INTERVAL}h"
+  bashio::log.info "  Backup max count: ${DATABASE_BACKUP_MAX_COUNT}"
   bashio::log.info "  Backup directory: ${DATABASE_BACKUP_PATH}"
 fi
 

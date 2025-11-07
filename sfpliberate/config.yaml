@@ -48,6 +48,7 @@ options:
   enable_metrics: false
   database_backup_enabled: true
   database_backup_interval: 24
+  database_backup_max_count: 7
   enable_debug_ble: false
 
 schema:
@@ -124,6 +125,12 @@ schema:
     description: How often to backup the database (in hours). Backups stored in /config/sfpliberate/backups/
     type: int(1,168)
     default: 24
+
+  database_backup_max_count:
+    name: Maximum Backup Count
+    description: Number of backup files to keep. Older backups are automatically deleted when limit is reached.
+    type: int(1,30)
+    default: 7
 
   enable_debug_ble:
     name: Enable BLE Debug Logging

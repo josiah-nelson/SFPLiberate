@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
         # Start database backup service (HA Add-on only)
         try:
             from app.services.backup_service import DatabaseBackupService
-            backup_service = DatabaseBackupService(max_backups=7)
+            backup_service = DatabaseBackupService(max_backups=settings.database_backup_max_count)
             await backup_service.start()
         except Exception as e:
             logger.error("backup_service_startup_failed", error=str(e), exc_info=True)

@@ -6,6 +6,7 @@ import structlog
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
 from app.config import get_settings
 
@@ -37,17 +38,37 @@ class DatabaseBackupService:
         self.backup_dir = Path(self.settings.database_backup_path)
 
     def _get_db_file_path(self) -> Path:
-        """Extract file path from SQLite database URL."""
+        """
+        Extract file path from SQLite database URL.
+
+        Uses urllib.parse.urlparse for robust URL parsing.
+        Supports formats:
+        - sqlite:///path/to/file.db
+        - sqlite+aiosqlite:///path/to/file.db
+        - sqlite+aiosqlite:////absolute/path/to/file.db (4 slashes for absolute paths)
+        """
         db_url = self.settings.database_url
 
-        # Handle sqlite+aiosqlite:////path format
-        if db_url.startswith("sqlite+aiosqlite:///"):
-            path_str = db_url.replace("sqlite+aiosqlite:///", "")
-        elif db_url.startswith("sqlite:///"):
-            path_str = db_url.replace("sqlite:///", "")
-        else:
-            # Fallback for other formats
-            path_str = db_url.split("///")[-1]
+        # Parse URL using standard library
+        parsed = urlparse(db_url)
+
+        # Validate scheme
+        if parsed.scheme not in ("sqlite", "sqlite+aiosqlite"):
+            raise ValueError(
+                f"Unsupported database scheme: {parsed.scheme}. "
+                f"Only SQLite databases are supported for backups."
+            )
+
+        # Extract path (urlparse handles the slashes correctly)
+        # For sqlite:///path -> path is '/path'
+        # For sqlite:////path -> path is '//path' which becomes '/path' when using Path
+        path_str = parsed.path
+
+        if not path_str:
+            raise ValueError(
+                f"Invalid database URL: {db_url}. "
+                f"Path component is empty."
+            )
 
         return Path(path_str)
 
