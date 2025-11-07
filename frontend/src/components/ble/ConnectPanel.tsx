@@ -244,37 +244,6 @@ export function ConnectPanel() {
           <ProxyDiscovery />
         </div>
       )}
-      <div>
-        <strong>Profile</strong>
-        <div className="mt-2 grid gap-3 sm:grid-cols-3" style={{ maxWidth: 880 }}>
-          <div className="grid gap-1">
-            <Label>Service UUID</Label>
-            <Input placeholder="Service UUID" value={svc} onChange={(e) => setSvc(e.target.value)} />
-          </div>
-          <div className="grid gap-1">
-            <Label>Write Char UUID</Label>
-            <Input placeholder="Write Char UUID" value={wrt} onChange={(e) => setWrt(e.target.value)} />
-          </div>
-          <div className="grid gap-1">
-            <Label>Notify Char UUID</Label>
-            <Input placeholder="Notify Char UUID" value={ntf} onChange={(e) => setNtf(e.target.value)} />
-          </div>
-        </div>
-        <div className="mt-2 flex items-center gap-2">
-          <Button onClick={onSaveProfile}>Save Profile</Button>
-          <Button onClick={onLoadDefaultProfile} variant="secondary">
-            Load Default from Backend
-          </Button>
-        </div>
-      </div>
-      <div>
-        <strong>Proxy</strong>
-        <div className="mt-2 flex items-center gap-2">
-          <Input placeholder="Device Address (optional)" value={proxyAddr} onChange={(e) => setProxyAddr(e.target.value)} />
-          <Button onClick={onProxyConnectAddress} disabled={busy}>Connect via Proxy (by address)</Button>
-        </div>
-      </div>
-      
     </div>
   );
 }
