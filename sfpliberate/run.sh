@@ -39,7 +39,7 @@ bashio::log.info "Database: ${DATABASE_FILE}"
 if bashio::config.true 'ble_trace_logging'; then
     bashio::log.info "BLE Trace Logging: ENABLED"
 else
-    bashio::log.info "BLE Trace Logging: disabled"
+    bashio::log.info "BLE Trace Logging: DISABLED"
 fi
 
 # Note: Actual service startup is handled by s6-overlay services in /etc/services.d/

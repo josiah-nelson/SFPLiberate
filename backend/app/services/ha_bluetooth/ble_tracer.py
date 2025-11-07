@@ -213,7 +213,7 @@ class BLETracer:
                     decoded = value.decode('utf-8', errors='replace')
                     self._logger.debug(f"  ASCII: {repr(decoded)}")
                 except Exception:
-                    pass
+                    self._logger.debug("  Value is not valid UTF-8, skipping ASCII representation.")
         else:
             self._logger.error(f"READ #{op_id} FAILED (Connection #{conn_id})")
             self._logger.error(f"  Characteristic: {char_uuid}")
@@ -247,7 +247,7 @@ class BLETracer:
                     decoded = value.decode('utf-8', errors='replace')
                     self._logger.debug(f"  ASCII: {repr(decoded)}")
                 except Exception:
-                    pass
+                    self._logger.debug("  Value is not valid UTF-8, skipping ASCII representation.")
         else:
             self._logger.error(f"{write_type} #{op_id} FAILED (Connection #{conn_id})")
             self._logger.error(f"  Characteristic: {char_uuid}")
@@ -272,7 +272,7 @@ class BLETracer:
                 decoded = value.decode('utf-8', errors='replace')
                 self._logger.debug(f"  ASCII: {repr(decoded)}")
             except Exception:
-                pass
+                self._logger.debug("  Value is not valid UTF-8, skipping ASCII representation.")
 
     def log_notification_subscribed(
         self,
@@ -315,9 +315,10 @@ class BLETracer:
     def close(self) -> None:
         """Log session end summary."""
         if self.enabled:
+            end_time = datetime.now()
             self._logger.info("=" * 80)
-            self._logger.info(f"BLE TRACE SESSION ENDED: {datetime.now().isoformat()}")
-            self._logger.info(f"Duration: {(datetime.now() - self._session_start).total_seconds():.2f}s")
+            self._logger.info(f"BLE TRACE SESSION ENDED: {end_time.isoformat()}")
+            self._logger.info(f"Duration: {(end_time - self._session_start).total_seconds():.2f}s")
             self._logger.info(f"Total Connections: {self._connection_counter}")
             self._logger.info(f"Total Operations: {self._operation_counter}")
             self._logger.info("=" * 80)
