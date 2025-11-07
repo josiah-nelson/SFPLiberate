@@ -69,6 +69,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare build context
+        run: |
+          # Copy backend and frontend into sfpliberate for Docker context
+          cp -r backend sfpliberate/
+          cp -r frontend sfpliberate/
+          echo "✓ Build context prepared"
+
       - name: Get version from config.yaml
         id: version
         run: |
