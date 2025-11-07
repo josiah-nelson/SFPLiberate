@@ -11,6 +11,7 @@
     "scripts": {
         "dev": "next dev --turbopack",
         "build": "next build --turbopack",
+        "postbuild": "cp -r .next/static .next/standalone/.next/static && if [ -d public ]; then cp -r public .next/standalone/public; fi",
         "start": "next start",
         "lint": "next lint",
         "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
