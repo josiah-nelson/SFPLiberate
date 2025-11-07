@@ -1,11 +1,107 @@
 #!/usr/bin/with-contenv bashio
 
-bashio::log.info "Starting FastAPI backend..."
+# shellcheck shell=bash
+set -e
 
-cd /app/backend || exit 1
+bashio::log.info "Starting SFPLiberate FastAPI backend..."
+
+# Validate backend directory exists
+if [[ ! -d /app/backend ]]; then
+  bashio::log.error "Backend directory not found at /app/backend!"
+  bashio::log.error "This indicates a problem with the add-on installation."
+  exit 1
+fi
+
+# Validate Python app module exists
+if [[ ! -d /app/backend/app ]]; then
+  bashio::log.error "Backend app module not found at /app/backend/app!"
+  bashio::log.error "This indicates a problem with the Docker build."
+  exit 1
+fi
+
+# Create and validate database directory
+bashio::log.info "Setting up database directory..."
+mkdir -p /config/sfpliberate/backups
+if [[ ! -w /config/sfpliberate ]]; then
+  bashio::log.error "Cannot write to /config/sfpliberate!"
+  bashio::log.error "Check Home Assistant permissions for the add-on."
+  exit 1
+fi
+
+# Get configuration from add-on options
+LOG_LEVEL=$(bashio::config 'log_level' 'info')
+AUTO_DISCOVER=$(bashio::config 'auto_discover' 'true')
+CONNECTION_TIMEOUT=$(bashio::config 'connection_timeout' '30')
+SCAN_INTERVAL=$(bashio::config 'scan_interval' '5')
+RSSI_THRESHOLD=$(bashio::config 'rssi_threshold' '-80')
+MAX_DEVICES=$(bashio::config 'max_devices' '50')
+BLUETOOTH_ADAPTER=$(bashio::config 'bluetooth_adapter' 'default')
+ENABLE_METRICS=$(bashio::config 'enable_metrics' 'false')
+ENABLE_DEBUG_BLE=$(bashio::config 'enable_debug_ble' 'false')
+
+# Export environment variables for backend
+export LOG_LEVEL
+export HA_ADDON_MODE=true
+export DEPLOYMENT_MODE=homeassistant
+export DATABASE_FILE=/config/sfpliberate/sfp_library.db
+export AUTO_DISCOVER
+export CONNECTION_TIMEOUT
+export SCAN_INTERVAL
+export RSSI_THRESHOLD
+export MAX_DEVICES
+export BLUETOOTH_ADAPTER
+export ENABLE_METRICS
+export ENABLE_DEBUG_BLE
+
+# Log configuration
+bashio::log.info "Backend configuration:"
+bashio::log.info "  Log level: ${LOG_LEVEL}"
+bashio::log.info "  Auto-discover: ${AUTO_DISCOVER}"
+bashio::log.info "  Connection timeout: ${CONNECTION_TIMEOUT}s"
+bashio::log.info "  Scan interval: ${SCAN_INTERVAL}s"
+bashio::log.info "  RSSI threshold: ${RSSI_THRESHOLD} dBm"
+bashio::log.info "  Max devices: ${MAX_DEVICES}"
+bashio::log.info "  Bluetooth adapter: ${BLUETOOTH_ADAPTER}"
+bashio::log.info "  Database: ${DATABASE_FILE}"
+
+# Validate Python installation and dependencies
+bashio::log.info "Validating Python environment..."
+if ! command -v python3 &> /dev/null; then
+  bashio::log.error "Python 3 not found!"
+  exit 1
+fi
+
+# Test import of main app module (catches missing dependencies early)
+if ! python3 -c "import sys; sys.path.insert(0, '/app/backend'); import app.main" 2>/dev/null; then
+  bashio::log.error "Failed to import backend app module!"
+  bashio::log.error "This may indicate missing Python dependencies."
+  bashio::log.info "Running diagnostic check..."
+  python3 -c "import sys; sys.path.insert(0, '/app/backend'); import app.main" 2>&1 || true
+  exit 1
+fi
+
+bashio::log.info "Python environment validated successfully"
+
+# Change to backend directory
+cd /app/backend || {
+  bashio::log.error "Failed to change to backend directory!"
+  exit 1
+}
+
+# Supervisor token for Home Assistant API access
+if bashio::supervisor.ping; then
+  export SUPERVISOR_TOKEN="${SUPERVISOR_TOKEN}"
+  bashio::log.info "Home Assistant Supervisor connection established"
+else
+  bashio::log.warning "Could not connect to Home Assistant Supervisor"
+  bashio::log.warning "Some features may not work correctly"
+fi
 
 # Start backend with uvicorn
+bashio::log.info "Starting uvicorn server on port 80..."
 exec python3 -m uvicorn app.main:app \
   --host 0.0.0.0 \
   --port 80 \
-  --log-level "${LOG_LEVEL:-info}"
+  --log-level "${LOG_LEVEL}" \
+  --no-access-log \
+  --forwarded-allow-ips "*"
