@@ -196,7 +196,7 @@ jobs:
           # Create deployment using Sites API
           node << 'EOF'
           const sdk = require('node-appwrite');
-          const { InputFile } = require('node-appwrite/inputFile');
+          const { InputFile } = require('node-appwrite/file');
           const fs = require('fs');
           
           const client = new sdk.Client()
