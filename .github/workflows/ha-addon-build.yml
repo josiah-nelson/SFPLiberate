@@ -69,6 +69,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: |
+          pip install pyyaml
+
       - name: Get version from config.yaml
         id: version
         run: |
@@ -89,36 +98,33 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build add-on (PR)
+      - name: Build add-on (PR - test mode)
         if: github.event_name == 'pull_request'
-        uses: home-assistant/builder@master
-        with:
-          args: |
-            --${{ matrix.arch }} \
-            --target ./sfpliberate \
+        run: |
+          python3 sfpliberate/build.py \
+            --arch ${{ matrix.arch }} \
+            --tag dev \
             --test
 
       - name: Build and push add-on (main/develop)
         if: github.event_name != 'pull_request' && github.event_name != 'release'
-        uses: home-assistant/builder@master
-        with:
-          args: |
-            --${{ matrix.arch }} \
-            --target ./sfpliberate \
-            --docker-hub ghcr.io/${{ github.repository_owner }} \
+        run: |
+          python3 sfpliberate/build.py \
+            --arch ${{ matrix.arch }} \
+            --tag dev \
+            --registry ghcr.io/${{ github.repository_owner }} \
             --image sfpliberate-addon-{arch} \
-            --version dev
+            --push
 
       - name: Build and push add-on (release)
         if: github.event_name == 'release'
-        uses: home-assistant/builder@master
-        with:
-          args: |
-            --${{ matrix.arch }} \
-            --target ./sfpliberate \
-            --docker-hub ghcr.io/${{ github.repository_owner }} \
+        run: |
+          python3 sfpliberate/build.py \
+            --arch ${{ matrix.arch }} \
+            --use-config-version \
+            --registry ghcr.io/${{ github.repository_owner }} \
             --image sfpliberate-addon-{arch} \
-            --version ${{ steps.version.outputs.version }}
+            --push
 
   # Update repository.json after successful build
   update-repository:
