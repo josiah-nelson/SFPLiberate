@@ -28,7 +28,7 @@ ENV DEPLOYMENT_MODE=standalone
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy source files (cached separately from dependencies)
-COPY --link package.json yarn.lock* package-lock.json* pnpm-lock.yaml* next.config.ts tsconfig.json .npmrc* ./
+COPY --link package.json yarn.lock* package-lock.json* pnpm-lock.yaml* next.config.ts tsconfig.json postcss.config.mjs .npmrc* ./
 COPY --link public ./public
 COPY --link src ./src
 
