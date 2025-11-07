@@ -27,7 +27,7 @@ COPY backend/app /backend/app
 # ============================================================================
 # Stage 2: Frontend build
 # ============================================================================
-FROM node:20-alpine AS frontend-build
+FROM node:22-alpine AS frontend-build
 
 WORKDIR /frontend
 
