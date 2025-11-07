@@ -1,12 +1,80 @@
 #!/usr/bin/with-contenv bashio
 
-bashio::log.info "Starting Next.js frontend..."
+# shellcheck shell=bash
+set -e
 
-cd /app/frontend || exit 1
+bashio::log.info "Starting SFPLiberate Next.js frontend..."
 
-# Set Node.js to use port 3000 (for ingress)
+# Validate frontend directory exists
+if [[ ! -d /app/frontend ]]; then
+  bashio::log.error "Frontend directory not found at /app/frontend!"
+  bashio::log.error "This indicates a problem with the add-on installation."
+  exit 1
+fi
+
+# Validate Next.js standalone build exists
+if [[ ! -f /app/frontend/server.js ]]; then
+  bashio::log.error "Next.js server.js not found at /app/frontend/server.js!"
+  bashio::log.error "This indicates a problem with the Docker build."
+  exit 1
+fi
+
+# Validate Node.js installation
+bashio::log.info "Validating Node.js environment..."
+if ! command -v node &> /dev/null; then
+  bashio::log.error "Node.js not found!"
+  exit 1
+fi
+
+NODE_VERSION=$(node --version)
+bashio::log.info "Node.js version: ${NODE_VERSION}"
+
+# Get configuration from add-on options
+LOG_LEVEL=$(bashio::config 'log_level' 'info')
+
+# Set environment variables for Next.js
 export PORT=3000
 export HOSTNAME="0.0.0.0"
+export NODE_ENV=production
+export DEPLOYMENT_MODE=homeassistant
+export BACKEND_URL=http://localhost:80
+export NEXT_TELEMETRY_DISABLED=1
+
+# Set log level for Next.js (maps to NODE_ENV behavior)
+if [[ "${LOG_LEVEL}" == "debug" ]]; then
+  export NODE_OPTIONS="--trace-warnings"
+fi
+
+# Log configuration
+bashio::log.info "Frontend configuration:"
+bashio::log.info "  Port: ${PORT} (Home Assistant Ingress)"
+bashio::log.info "  Backend URL: ${BACKEND_URL}"
+bashio::log.info "  Node.js version: ${NODE_VERSION}"
+bashio::log.info "  Log level: ${LOG_LEVEL}"
+
+# Wait for backend to be ready (simple health check)
+bashio::log.info "Waiting for backend to be ready..."
+BACKEND_READY=false
+for i in {1..30}; do
+  if curl -sf http://localhost:80/health >/dev/null 2>&1; then
+    BACKEND_READY=true
+    bashio::log.info "Backend is ready!"
+    break
+  fi
+  if [[ $i -eq 30 ]]; then
+    bashio::log.warning "Backend health check timed out after 30 seconds"
+    bashio::log.warning "Frontend will start anyway, but may not function correctly"
+    break
+  fi
+  sleep 1
+done
+
+# Change to frontend directory
+cd /app/frontend || {
+  bashio::log.error "Failed to change to frontend directory!"
+  exit 1
+}
 
 # Start Next.js server
+bashio::log.info "Starting Next.js standalone server..."
 exec node server.js

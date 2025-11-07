@@ -1,0 +1,136 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+.github
+
+# Documentation
+*.md
+!README.md
+docs/
+CLAUDE.md
+LICENSE
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.settings
+.classpath
+
+# Backend - Python
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache
+backend/.coverage
+backend/htmlcov
+backend/.mypy_cache
+backend/.ruff_cache
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.Python
+backend/pip-log.txt
+backend/pip-delete-this-directory.txt
+backend/.tox/
+backend/.env
+backend/.venv
+backend/venv/
+backend/ENV/
+backend/env/
+backend/.eggs/
+backend/*.egg-info/
+backend/dist/
+backend/build/
+backend/.pytest_cache/
+
+# Backend - Test files
+backend/tests/
+backend/**/test_*.py
+backend/**/*_test.py
+
+# Frontend - Node.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.turbo
+frontend/.vercel
+
+# Frontend - Test files
+frontend/**/*.test.ts
+frontend/**/*.test.tsx
+frontend/**/*.spec.ts
+frontend/**/*.spec.tsx
+frontend/__tests__/
+frontend/jest.config.*
+frontend/cypress/
+frontend/.cypress/
+frontend/e2e/
+
+# Frontend - Development
+frontend/.env*.local
+frontend/.env.development
+frontend/.env.test
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Docker
+docker-compose*.yml
+!docker-compose.yml
+Dockerfile*
+!sfpliberate/Dockerfile
+.dockerignore
+
+# Database and data (not used in build)
+*.db
+*.sqlite
+*.sqlite3
+data/
+submissions/
+backups/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# OS files
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# CI/CD (not needed in image)
+.github/workflows/
+.gitlab-ci.yml
+.circleci/
+azure-pipelines.yml
+
+# Add-on specific (already in sfpliberate/ subdirectory, no need in root context)
+# But we DO want sfpliberate/ directory to be included
+# This is handled by the build context being set to repo root
+
+# Exclude anything not needed for runtime
+*.md
+!sfpliberate/*.md
+*.txt
+!requirements.txt
+!sfpliberate/*.txt
+
+# Keep only essential files for the build
+# Build script references:
+#   - backend/ (source code)
+#   - frontend/ (source code)
+#   - sfpliberate/ (add-on config)

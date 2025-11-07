@@ -75,6 +75,22 @@ class Settings(BaseSettings):
     connection_timeout: int = 30
     device_expiry_seconds: int = 300
 
+    # Bluetooth Configuration (HA Add-on)
+    scan_interval: int = 5  # Bluetooth scan interval in seconds
+    rssi_threshold: int = -80  # Minimum RSSI (dBm) to show devices
+    max_devices: int = 50  # Maximum number of devices to track
+    bluetooth_adapter: str = "default"  # Bluetooth adapter (default/hci0/hci1/etc)
+
+    # Performance & Monitoring
+    enable_metrics: bool = False  # Collect performance metrics
+    enable_debug_ble: bool = False  # Verbose BLE debugging
+
+    # Database Backup (HA Add-on)
+    database_backup_enabled: bool = True
+    database_backup_interval: int = 24  # Backup interval in hours
+    database_backup_max_count: int = 7  # Maximum number of backups to keep
+    database_backup_path: str = "/config/sfpliberate/backups"  # Backup directory
+
 
 @lru_cache
 def get_settings() -> Settings:

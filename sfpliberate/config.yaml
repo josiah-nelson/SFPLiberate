@@ -41,13 +41,102 @@ options:
     - "Wizard"
   connection_timeout: 30
   device_expiry_seconds: 300
+  scan_interval: 5
+  rssi_threshold: -80
+  max_devices: 50
+  bluetooth_adapter: "default"
+  enable_metrics: false
+  database_backup_enabled: true
+  database_backup_interval: 24
+  database_backup_max_count: 7
+  enable_debug_ble: false
 
 schema:
-  log_level: list(debug|info|warning|error)?
-  auto_discover: bool
-  device_name_patterns: [str]
-  connection_timeout: int(10,120)?
-  device_expiry_seconds: int(60,600)?
+  log_level:
+    name: Log Level
+    description: Set the logging verbosity. Use 'debug' for troubleshooting issues.
+    type: list(debug|info|warning|error)
+    default: info
+
+  auto_discover:
+    name: Auto-discover Devices
+    description: Automatically detect SFP Wizard devices on your Bluetooth network
+    type: bool
+    default: true
+
+  device_name_patterns:
+    name: Device Name Patterns
+    description: Only auto-discover devices matching these patterns (e.g., "SFP", "Wizard"). Case-insensitive.
+    type: list(str)
+    default:
+      - "SFP"
+      - "Wizard"
+
+  connection_timeout:
+    name: Connection Timeout
+    description: Maximum time (in seconds) to wait for BLE connection before giving up
+    type: int(10,120)
+    default: 30
+
+  device_expiry_seconds:
+    name: Device Expiry Time
+    description: Remove devices from cache after this many seconds of inactivity (prevents stale listings)
+    type: int(60,3600)
+    default: 300
+
+  scan_interval:
+    name: Bluetooth Scan Interval
+    description: How often (in seconds) to scan for new Bluetooth devices. Lower = more responsive but higher CPU usage.
+    type: int(1,60)
+    default: 5
+
+  rssi_threshold:
+    name: Signal Strength Threshold (RSSI)
+    description: Minimum signal strength (dBm) to show devices. Range -100 (weak) to -30 (strong). Lower values show more distant devices.
+    type: int(-100,-30)
+    default: -80
+
+  max_devices:
+    name: Maximum Tracked Devices
+    description: Maximum number of Bluetooth devices to track simultaneously (prevents memory issues)
+    type: int(10,200)
+    default: 50
+
+  bluetooth_adapter:
+    name: Bluetooth Adapter
+    description: Which Bluetooth adapter to use. Use 'default' for auto-selection, or specify 'hci0', 'hci1', etc.
+    type: str
+    default: "default"
+
+  enable_metrics:
+    name: Enable Performance Metrics
+    description: Collect and expose performance metrics (connection times, scan counts, etc.) for monitoring
+    type: bool
+    default: false
+
+  database_backup_enabled:
+    name: Enable Database Backups
+    description: Automatically backup the SFP module library database
+    type: bool
+    default: true
+
+  database_backup_interval:
+    name: Backup Interval (hours)
+    description: How often to backup the database (in hours). Backups stored in /config/sfpliberate/backups/
+    type: int(1,168)
+    default: 24
+
+  database_backup_max_count:
+    name: Maximum Backup Count
+    description: Number of backup files to keep. Older backups are automatically deleted when limit is reached.
+    type: int(1,30)
+    default: 7
+
+  enable_debug_ble:
+    name: Enable BLE Debug Logging
+    description: Enable verbose Bluetooth Low Energy debugging (very chatty - only for troubleshooting)
+    type: bool
+    default: false
 
 # Image configuration
 image: "ghcr.io/josiah-nelson/sfpliberate-addon-{arch}"

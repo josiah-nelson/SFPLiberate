@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize Bluetooth service based on deployment mode
     bluetooth_service = None
+    backup_service = None
 
     if settings.ha_addon_mode:
         # Home Assistant Add-On mode: Use HA Bluetooth API
@@ -51,6 +52,14 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error("ha_bluetooth_client_startup_failed", error=str(e), exc_info=True)
 
+        # Start database backup service (HA Add-on only)
+        try:
+            from app.services.backup_service import DatabaseBackupService
+            backup_service = DatabaseBackupService(max_backups=settings.database_backup_max_count)
+            await backup_service.start()
+        except Exception as e:
+            logger.error("backup_service_startup_failed", error=str(e), exc_info=True)
+
     elif settings.esphome_proxy_mode:
         # Standalone mode: Use ESPHome proxy service
         try:
@@ -64,6 +73,13 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    if backup_service:
+        try:
+            await backup_service.stop()
+            logger.info("backup_service_stopped")
+        except Exception as e:
+            logger.error("backup_service_shutdown_failed", error=str(e))
+
     if bluetooth_service:
         try:
             await bluetooth_service.stop()
