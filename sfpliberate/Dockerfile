@@ -76,8 +76,8 @@ COPY --from=frontend-build /frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-build /frontend/public /app/frontend/public
 
 # Copy add-on files
-COPY run.sh /
-COPY rootfs /
+COPY sfpliberate/run.sh /
+COPY sfpliberate/rootfs /
 
 # Make scripts executable
 RUN chmod +x /run.sh && \
