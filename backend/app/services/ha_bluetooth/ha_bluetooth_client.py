@@ -147,26 +147,20 @@ class HomeAssistantBluetoothClient:
                 "Make sure the device is advertising and matches configured patterns."
             )
 
-        # For now, return cached UUIDs or defaults for SFP Wizard
-        # In a future version, this would call HA's bluetooth.connect service
-        # and enumerate GATT services via HA's Bluetooth integration
+        # TODO: UUIDs should be retrieved from discovered device database
+        # For now, this is a placeholder that will need to be implemented
+        # when database storage for discovered devices is added
+        #
+        # Options:
+        # 1. Query database for previously discovered device UUIDs by MAC
+        # 2. Use HA Bluetooth integration to enumerate GATT services
+        # 3. Require Web Bluetooth discovery before HA proxy connection
 
-        # Check if we have cached UUIDs from environment
-        service_uuid = os.getenv("SFP_SERVICE_UUID", "8E60F02E-F699-4865-B83F-F40501752184")
-        write_uuid = os.getenv("SFP_WRITE_CHAR_UUID", "9280F26C-A56F-43EA-B769-D5D732E1AC67")
-        notify_uuid = os.getenv("SFP_NOTIFY_CHAR_UUID", "DC272A22-43F2-416B-8FA5-63A071542FAC")
-
-        logger.info(
-            f"Using cached UUIDs for {mac_address}: "
-            f"service={service_uuid}, notify={notify_uuid}, write={write_uuid}"
-        )
-
-        return HADeviceConnectionResponse(
-            service_uuid=service_uuid,
-            notify_char_uuid=notify_uuid,
-            write_char_uuid=write_uuid,
-            device_name=device.name,
-            source=device.source,
+        # Temporary: UUIDs must be discovered first - no manual configuration
+        raise NotImplementedError(
+            "HA Bluetooth proxy requires device UUIDs to be discovered first. "
+            "Please use Web Bluetooth discovery to enumerate service UUIDs, "
+            "or implement database storage for discovered devices."
         )
 
     @property

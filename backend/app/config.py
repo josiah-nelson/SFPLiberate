@@ -57,11 +57,6 @@ class Settings(BaseSettings):
     # Public mode (hide proxy UI and advanced options by default)
     public_mode: bool = False
 
-    # Optional default SFP profile via env (self-hosted convenience)
-    sfp_service_uuid: str | None = None
-    sfp_write_char_uuid: str | None = None
-    sfp_notify_char_uuid: str | None = None
-
     # Path to bind-mounted env file for persistence (self-hosted)
     ble_env_path: str | None = "/app/.env"
 

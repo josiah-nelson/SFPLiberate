@@ -26,21 +26,8 @@ async def root() -> dict[str, str]:
 @router.get("/config")
 async def app_config() -> dict[str, object]:
     """Expose minimal runtime configuration for the frontend."""
-    default_profile: dict[str, str] | None = None
-    if (
-        settings.sfp_service_uuid
-        and settings.sfp_write_char_uuid
-        and settings.sfp_notify_char_uuid
-    ):
-        default_profile = {
-            "serviceUuid": settings.sfp_service_uuid,
-            "writeCharUuid": settings.sfp_write_char_uuid,
-            "notifyCharUuid": settings.sfp_notify_char_uuid,
-        }
-
     return {
         "version": settings.version,
         "esphome_proxy_mode": settings.esphome_proxy_mode,
         "public_mode": settings.public_mode,
-        "default_profile": default_profile,
     }
