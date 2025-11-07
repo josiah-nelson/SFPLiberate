@@ -315,9 +315,10 @@ class BLETracer:
     def close(self) -> None:
         """Log session end summary."""
         if self.enabled:
+            end_time = datetime.now()
             self._logger.info("=" * 80)
-            self._logger.info(f"BLE TRACE SESSION ENDED: {datetime.now().isoformat()}")
-            self._logger.info(f"Duration: {(datetime.now() - self._session_start).total_seconds():.2f}s")
+            self._logger.info(f"BLE TRACE SESSION ENDED: {end_time.isoformat()}")
+            self._logger.info(f"Duration: {(end_time - self._session_start).total_seconds():.2f}s")
             self._logger.info(f"Total Connections: {self._connection_counter}")
             self._logger.info(f"Total Operations: {self._operation_counter}")
             self._logger.info("=" * 80)
