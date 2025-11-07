@@ -12,6 +12,7 @@ name: Deploy Backend to Appwrite Function
 # - Auto-scaling
 # - Custom domain: api.sfplib.com
 # - Environment variables configured in Appwrite Console
+# - requirements.txt generated dynamically from pyproject.toml (Poetry 2.x compatible)
 #
 # This runs independently from Sites deployment
 # Frontend calls backend via /api/* rewrites to api.sfplib.com
@@ -82,11 +83,20 @@ jobs:
             exit 1
           fi
 
-          # Create requirements.txt from Poetry for Appwrite
+          # Install Poetry
+          echo "Installing Poetry..."
           pip install poetry
-          poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+          # Install poetry-plugin-export (required for Poetry 2.x)
+          echo "Installing poetry-plugin-export for Poetry 2.x compatibility..."
+          poetry self add poetry-plugin-export
+
+          # Generate requirements.txt from Poetry
+          echo "Generating requirements.txt from pyproject.toml..."
+          poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev
 
           echo "✅ Backend prepared"
+          echo "requirements.txt size: $(wc -l < requirements.txt) lines"
           ls -la
 
       - name: Deploy Function
@@ -208,8 +218,9 @@ jobs:
              - \`APPWRITE_API_KEY\`
              - \`APPWRITE_FUNCTION_ID\` (create in Console first)
           3. Verify function exists in Appwrite Console
-          4. Check Poetry dependencies in pyproject.toml
+          4. Check Poetry dependencies in backend/pyproject.toml
           5. Ensure Python 3.12 runtime is available
+          6. If poetry export fails, verify poetry.lock is up-to-date
 
           ### Create Function Manually
           If function doesn't exist:
