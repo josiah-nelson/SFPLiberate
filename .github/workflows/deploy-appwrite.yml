@@ -58,6 +58,7 @@ jobs:
   validate:
     name: Validate Branch
     runs-on: ubuntu-latest
+    if: false  # DISABLED: Using Git Auto-Deploy instead (configured in Appwrite Console)
     steps:
       - name: Check branch
         run: |
@@ -81,6 +82,7 @@ jobs:
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
+    if: false  # DISABLED: Using Git Auto-Deploy instead (configured in Appwrite Console)
     needs: validate
     environment:
       name: ${{ github.event.inputs.environment || 'staging' }}
@@ -314,7 +316,7 @@ jobs:
     name: Notify Failure
     runs-on: ubuntu-latest
     needs: [validate, deploy]
-    if: failure()
+    if: false  # DISABLED: Using Git Auto-Deploy instead (configured in Appwrite Console)
     steps:
       - name: Create failure summary
         run: |
