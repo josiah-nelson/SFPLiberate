@@ -64,10 +64,11 @@ async function requestSfpDevice(): Promise<any> {
     '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute (GATT)
   ];
 
-  // Known SFP Wizard service UUID (firmware v1.0.10)
-  // This must be in optionalServices to allow Web Bluetooth to enumerate it
+  // Known SFP Wizard service UUIDs (firmware v1.0.10)
+  // These must be in optionalServices to allow Web Bluetooth to enumerate them
   const knownSfpServices = [
-    '8e60f02e-f699-4865-b83f-f40501752184', // SFP Wizard service
+    '8e60f02e-f699-4865-b83f-f40501752184', // SFP Wizard primary service
+    '0b9676ee-8352-440a-bf80-61541d578fcf', // SFP Wizard secondary service
   ];
 
   // Combine all services we want to access
