@@ -374,7 +374,7 @@ class HomeAssistantBluetoothClient:
                 rssi=attrs.get("rssi", -100),
                 advertisement_data={
                     "entity_id": entity_id,
-                    "source": attrs.get("source", "unknown"),
+                    "source": attrs.get("source", "hass_bluetooth"),
                     "last_seen": new_state.get("last_changed"),
                     "update_via": "websocket",
                 }
