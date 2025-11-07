@@ -46,7 +46,8 @@ RUN npm run build
 # ============================================================================
 # Stage 3: Final runtime image
 # ============================================================================
-ARG BUILD_FROM
+# BUILD_FROM is passed by Home Assistant builder from build.yaml
+ARG BUILD_FROM=ghcr.io/hassio-addons/base-amd64:15.0.0
 FROM ${BUILD_FROM}
 
 # Install runtime dependencies
