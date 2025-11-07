@@ -165,12 +165,12 @@ jobs:
           echo "📦 Packaging Next.js standalone build..."
 
           # Create deployment structure
-          # Next.js standalone output structure:
-          # .next/standalone/frontend/  <- Contains server.js and .next/ directory
-          # .next/static/               <- CSS, JS chunks (needs to be copied into standalone)
-          # public/                     <- Static assets (needs to be copied into standalone)
+          # Next.js standalone output when building from frontend/ directory:
+          # .next/standalone/           <- Contains server.js (already flat since working-directory is frontend/)
+          # .next/static/               <- CSS, JS chunks (needs to be copied in)
+          # public/                     <- Static assets (needs to be copied in)
           #
-          # Appwrite Sites expects server.js at the ROOT level, so we need to flatten:
+          # Appwrite Sites deployment structure:
           # deploy/
           #   ├── server.js
           #   ├── .next/
@@ -179,9 +179,8 @@ jobs:
 
           mkdir -p deploy
 
-          # Copy standalone output FROM frontend subdirectory (flatten structure)
-          # This puts server.js at the root level where Appwrite expects it
-          cp -r .next/standalone/frontend/* deploy/
+          # Copy standalone output (already flat since we're building from frontend/ directory)
+          cp -r .next/standalone/* deploy/
 
           # Copy static assets into .next/static directory
           mkdir -p deploy/.next/static
@@ -192,6 +191,9 @@ jobs:
 
           echo "📋 Verifying deployment structure..."
           ls -la deploy/
+          echo ""
+          echo "✓ server.js present:"
+          ls -l deploy/server.js
           echo ""
           echo ".next directory:"
           ls -la deploy/.next/
