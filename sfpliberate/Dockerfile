@@ -1,3 +1,7 @@
+# BUILD_FROM is passed by Home Assistant builder from build.yaml
+# Must be declared globally for multi-stage builds
+ARG BUILD_FROM=ghcr.io/hassio-addons/base-amd64:15.0.0
+
 # ============================================================================
 # Stage 1: Backend build
 # ============================================================================
@@ -46,8 +50,8 @@ RUN npm run build
 # ============================================================================
 # Stage 3: Final runtime image
 # ============================================================================
-# BUILD_FROM is passed by Home Assistant builder from build.yaml
-ARG BUILD_FROM=ghcr.io/hassio-addons/base-amd64:15.0.0
+# Re-declare BUILD_FROM for this stage
+ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
 # Install runtime dependencies
