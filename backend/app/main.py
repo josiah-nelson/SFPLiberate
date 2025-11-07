@@ -26,6 +26,12 @@ async def lifespan(app: FastAPI):
     logger = structlog.get_logger()
     logger.info("application_startup", version=settings.version, ha_addon_mode=settings.ha_addon_mode)
 
+    # Initialize BLE tracer if enabled
+    if settings.ble_trace_logging:
+        from app.services.ha_bluetooth.ble_tracer import init_tracer
+        init_tracer(enabled=True)
+        logger.info("ble_tracer_enabled")
+
     await init_db()
     logger.info("database_initialized")
 
@@ -86,6 +92,11 @@ async def lifespan(app: FastAPI):
             logger.info("bluetooth_service_stopped")
         except Exception as e:
             logger.error("bluetooth_service_shutdown_failed", error=str(e))
+
+    # Close BLE tracer if enabled
+    if settings.ble_trace_logging:
+        from app.services.ha_bluetooth.ble_tracer import get_tracer
+        get_tracer().close()
 
     logger.info("application_shutdown")
 

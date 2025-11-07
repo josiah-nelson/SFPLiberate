@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     # Performance & Monitoring
     enable_metrics: bool = False  # Collect performance metrics
     enable_debug_ble: bool = False  # Verbose BLE debugging
+    ble_trace_logging: bool = False  # Comprehensive BLE trace logging
 
     # Database Backup (HA Add-on)
     database_backup_enabled: bool = True

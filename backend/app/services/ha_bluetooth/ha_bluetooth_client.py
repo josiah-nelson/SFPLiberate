@@ -6,8 +6,10 @@ from typing import List, Optional, Dict, Any, Tuple
 import aiohttp
 import json
 import os
+import time
 
 from .schemas import HABluetoothDevice, HADeviceConnectionResponse
+from .ble_tracer import get_tracer
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +61,15 @@ class HomeAssistantBluetoothClient:
             f"Initialized HA Bluetooth client: api_url={self.ha_api_url}, "
             f"patterns={self.device_patterns}"
         )
+
+        # Log session info to tracer
+        tracer = get_tracer()
+        tracer.log_session_info({
+            "mode": "Home Assistant Add-on",
+            "api_url": self.ha_api_url,
+            "ws_url": self.ha_ws_url,
+            "device_patterns": self.device_patterns,
+        })
 
     async def start(self) -> None:
         """Initialize connection to HA API and start listening for device updates."""
@@ -174,6 +185,12 @@ class HomeAssistantBluetoothClient:
             logger.warning("Cannot discover devices - session not initialized")
             return
 
+        tracer = get_tracer()
+        tracer.log_device_scan_start(
+            patterns=self.device_patterns,
+            filters={"source": "Home Assistant API"}
+        )
+
         try:
             async with self._session.get(f"{self.ha_api_url}/states") as resp:
                 if resp.status != 200:
@@ -205,12 +222,26 @@ class HomeAssistantBluetoothClient:
                     continue
 
                 # Create device object
-                discovered[mac] = HABluetoothDevice(
+                device = HABluetoothDevice(
                     mac=mac,
                     name=name,
                     rssi=attrs.get("rssi", -100),
                     source=attrs.get("source", "hass_bluetooth"),
                     last_seen=state.get("last_changed"),
+                )
+                discovered[mac] = device
+
+                # Log discovery to tracer
+                tracer.log_device_discovered(
+                    mac=mac,
+                    name=name,
+                    rssi=attrs.get("rssi", -100),
+                    advertisement_data={
+                        "entity_id": entity_id,
+                        "source": attrs.get("source", "unknown"),
+                        "last_seen": state.get("last_changed"),
+                        "attributes": attrs,
+                    }
                 )
 
             # Update cache
@@ -219,6 +250,7 @@ class HomeAssistantBluetoothClient:
 
         except Exception as e:
             logger.error(f"Error discovering devices: {e}", exc_info=True)
+            tracer.log_error("Device Discovery", str(e))
 
     def _is_bluetooth_entity(self, entity_id: str, attrs: Dict[str, Any]) -> bool:
         """Check if entity is Bluetooth-related."""
@@ -325,12 +357,27 @@ class HomeAssistantBluetoothClient:
                 return
 
             # Update cache
-            self._discovered_devices[mac] = HABluetoothDevice(
+            device = HABluetoothDevice(
                 mac=mac,
                 name=name,
                 rssi=attrs.get("rssi", -100),
                 source=attrs.get("source", "hass_bluetooth"),
                 last_seen=new_state.get("last_changed"),
+            )
+            self._discovered_devices[mac] = device
+
+            # Log to tracer
+            tracer = get_tracer()
+            tracer.log_device_discovered(
+                mac=mac,
+                name=name,
+                rssi=attrs.get("rssi", -100),
+                advertisement_data={
+                    "entity_id": entity_id,
+                    "source": attrs.get("source", "unknown"),
+                    "last_seen": new_state.get("last_changed"),
+                    "update_via": "websocket",
+                }
             )
 
             logger.debug(f"Updated device via WebSocket: {name} ({mac})")

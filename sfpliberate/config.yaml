@@ -50,6 +50,7 @@ options:
   database_backup_interval: 24
   database_backup_max_count: 7
   enable_debug_ble: false
+  ble_trace_logging: false
 
 schema:
   log_level:
@@ -135,6 +136,12 @@ schema:
   enable_debug_ble:
     name: Enable BLE Debug Logging
     description: Enable verbose Bluetooth Low Energy debugging (very chatty - only for troubleshooting)
+    type: bool
+    default: false
+
+  ble_trace_logging:
+    name: Enable BLE Trace Logging
+    description: Log all BLE communications with maximum verbosity. Includes device discovery, GATT enumeration, and all read/write/notify operations. Logs appear in the standard add-on log output. Use for protocol analysis and troubleshooting.
     type: bool
     default: false
 
