@@ -172,10 +172,11 @@ class DatabaseBackupService:
     async def _cleanup_old_backups(self) -> None:
         """Remove old backup files, keeping only max_backups most recent."""
         try:
-            # Get all backup files sorted by modification time (newest first)
+            # Get all backup files sorted by filename (newest first)
+            # Filenames contain timestamps so lexicographic sorting works correctly
             backup_files = sorted(
                 self.backup_dir.glob("sfp_library_backup_*.db"),
-                key=lambda p: p.stat().st_mtime,
+                key=lambda p: p.name,
                 reverse=True,
             )
 
@@ -203,9 +204,11 @@ class DatabaseBackupService:
             List of dicts with backup file info (name, size, timestamp)
         """
         try:
+            # Sort by filename (newest first)
+            # Filenames contain timestamps so lexicographic sorting works correctly
             backup_files = sorted(
                 self.backup_dir.glob("sfp_library_backup_*.db"),
-                key=lambda p: p.stat().st_mtime,
+                key=lambda p: p.name,
                 reverse=True,
             )
 
@@ -241,10 +244,16 @@ class DatabaseBackupService:
             return False
 
         try:
-            # Create a backup of current database before restoring
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            pre_restore_backup = self.backup_dir / f"sfp_library_pre_restore_{timestamp}.db"
-            await asyncio.to_thread(shutil.copy2, self.db_file, pre_restore_backup)
+            # Create a backup of current database before restoring (if it exists)
+            # Use standard backup filename pattern so cleanup logic will manage it
+            if self.db_file.exists():
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                pre_restore_backup = self.backup_dir / f"sfp_library_backup_pre_restore_{timestamp}.db"
+                await asyncio.to_thread(shutil.copy2, self.db_file, pre_restore_backup)
+                logger.info("database_pre_restore_backup_created", file=pre_restore_backup.name)
+            else:
+                pre_restore_backup = None
+                logger.info("database_pre_restore_backup_skipped", reason="database_does_not_exist")
 
             # Restore from backup
             await asyncio.to_thread(shutil.copy2, backup_path, self.db_file)
@@ -252,7 +261,7 @@ class DatabaseBackupService:
             logger.info(
                 "database_backup_restored",
                 backup_file=backup_filename,
-                pre_restore_backup=pre_restore_backup.name,
+                pre_restore_backup=pre_restore_backup.name if pre_restore_backup else None,
             )
             return True
 

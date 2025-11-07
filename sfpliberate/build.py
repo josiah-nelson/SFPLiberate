@@ -139,8 +139,8 @@ def build_image(config: BuildConfig, push: bool = False, test: bool = False) -> 
 
 
 def get_addon_version() -> str:
-    """Get version from config.yaml."""
-    import yaml
+    """Get version from config.yaml using regex (no yaml dependency)."""
+    import re
 
     config_path = Path("sfpliberate/config.yaml")
     if not config_path.exists():
@@ -148,14 +148,15 @@ def get_addon_version() -> str:
         sys.exit(1)
 
     with open(config_path) as f:
-        config = yaml.safe_load(f)
+        content = f.read()
 
-    version = config.get("version")
-    if not version:
+    # Match version line: version: "1.0.0" or version: 1.0.0
+    match = re.search(r'^version:\s*["\']?([^"\']+)["\']?$', content, re.MULTILINE)
+    if not match:
         logger.error("Version not found in config.yaml!")
         sys.exit(1)
 
-    return version
+    return match.group(1)
 
 
 def main():

@@ -52,6 +52,7 @@ export DEPLOYMENT_MODE=homeassistant
 export DATABASE_FILE=/config/sfpliberate/sfp_library.db
 export DATABASE_URL="sqlite+aiosqlite:////config/sfpliberate/sfp_library.db"
 export AUTO_DISCOVER
+export DEVICE_NAME_PATTERNS="${DEVICE_PATTERNS}"
 export CONNECTION_TIMEOUT
 export SCAN_INTERVAL
 export RSSI_THRESHOLD
