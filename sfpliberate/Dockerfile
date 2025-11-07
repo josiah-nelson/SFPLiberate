@@ -13,7 +13,7 @@ WORKDIR /backend
 RUN pip install --no-cache-dir poetry==1.8.5
 
 # Copy backend dependency files
-COPY backend/pyproject.toml backend/poetry.lock ./
+COPY ../backend/pyproject.toml ../backend/poetry.lock ./
 
 # Export dependencies to requirements.txt
 RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev
@@ -22,7 +22,7 @@ RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application code
-COPY backend/app /backend/app
+COPY ../backend/app /backend/app
 
 # ============================================================================
 # Stage 2: Frontend build
@@ -32,13 +32,13 @@ FROM node:20-alpine AS frontend-build
 WORKDIR /frontend
 
 # Copy package files
-COPY frontend/package*.json ./
+COPY ../frontend/package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
 # Copy frontend source
-COPY frontend/ ./
+COPY ../frontend/ ./
 
 # Build Next.js in standalone mode for Home Assistant
 ENV DEPLOYMENT_MODE=homeassistant
@@ -76,8 +76,8 @@ COPY --from=frontend-build /frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-build /frontend/public /app/frontend/public
 
 # Copy add-on files
-COPY sfpliberate/run.sh /
-COPY sfpliberate/rootfs /
+COPY run.sh /
+COPY rootfs /
 
 # Make scripts executable
 RUN chmod +x /run.sh && \
