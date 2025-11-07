@@ -247,7 +247,7 @@ class BLETracer:
                     decoded = value.decode('utf-8', errors='replace')
                     self._logger.debug(f"  ASCII: {repr(decoded)}")
                 except Exception:
-                    pass
+                    self._logger.debug("  Value is not valid UTF-8, skipping ASCII representation.")
         else:
             self._logger.error(f"{write_type} #{op_id} FAILED (Connection #{conn_id})")
             self._logger.error(f"  Characteristic: {char_uuid}")
