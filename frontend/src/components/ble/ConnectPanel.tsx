@@ -106,7 +106,7 @@ export function ConnectPanel() {
     }
   };
 
-  const onWriteModule = async (id: number) => {
+  const onWriteModule = async (id: string) => {
     const confirmed = window.confirm(
       'WARNING: Writing EEPROM data can permanently damage your SFP module if incorrect data is used.\n\n' +
         'Before proceeding:\n' +

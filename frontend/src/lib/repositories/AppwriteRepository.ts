@@ -27,10 +27,10 @@ type AppwriteID = typeof import('appwrite').ID;
 type AppwritePermission = typeof import('appwrite').Permission;
 type AppwriteRole = typeof import('appwrite').Role;
 type AppwriteException = import('appwrite').AppwriteException;
-type AppwriteModels = typeof import('appwrite').Models;
+type AppwriteDocument = import('appwrite').Models.Document;
 
 // Document type for type-safe queries
-interface UserModuleDocument {
+interface UserModuleDocument extends AppwriteDocument {
   name: string;
   vendor?: string;
   model?: string;
@@ -248,7 +248,7 @@ export class AppwriteRepository implements ModuleRepository {
         Permission.delete(Role.user(userId)),
       ];
 
-      let fileUpload;
+      let fileUpload: Awaited<ReturnType<AppwriteStorage['createFile']>> | undefined;
       try {
         // Upload EEPROM file with permissions
         fileUpload = await retryWithBackoff(() =>
@@ -267,7 +267,7 @@ export class AppwriteRepository implements ModuleRepository {
               model: model || undefined,
               serial: serial || undefined,
               sha256,
-              eeprom_file_id: fileUpload.$id,
+              eeprom_file_id: fileUpload!.$id,
               size: data.eepromData.byteLength,
             },
             permissions
@@ -339,7 +339,7 @@ export class AppwriteRepository implements ModuleRepository {
       const { databases, storage, Query } = await getServices();
 
       // Get module (only fetch file ID)
-      const doc = await databases.getDocument<Pick<UserModuleDocument, 'eeprom_file_id'>>(
+      const doc = await databases.getDocument<UserModuleDocument>(
         DATABASE_ID,
         USER_MODULES_COLLECTION_ID,
         id,
@@ -351,17 +351,17 @@ export class AppwriteRepository implements ModuleRepository {
         throw new Error(`Module ${id} has no associated EEPROM file`);
       }
 
-      // Download file (returns Blob per Appwrite docs)
-      const result = await retryWithBackoff(() =>
-        storage.getFileDownload(USER_EEPROM_BUCKET_ID, fileId)
-      );
+      // Get download URL (Web SDK returns URL object with href property)
+      const downloadUrl = storage.getFileDownload(USER_EEPROM_BUCKET_ID, fileId);
 
-      // Convert Blob to ArrayBuffer
-      if (result instanceof Blob) {
-        return await result.arrayBuffer();
+      // Fetch the actual file data
+      const response = await retryWithBackoff(() => fetch(downloadUrl.toString()));
+
+      if (!response.ok) {
+        throw new Error(`Failed to download EEPROM file: ${response.statusText}`);
       }
 
-      throw new Error('Unexpected response type from getFileDownload');
+      return await response.arrayBuffer();
     } catch (error) {
       handleAppwriteError(error, 'Get EEPROM data');
     }
@@ -375,7 +375,7 @@ export class AppwriteRepository implements ModuleRepository {
       const { databases, storage, Query } = await getServices();
 
       // Get module (only fetch file ID)
-      const doc = await databases.getDocument<Pick<UserModuleDocument, 'eeprom_file_id'>>(
+      const doc = await databases.getDocument<UserModuleDocument>(
         DATABASE_ID,
         USER_MODULES_COLLECTION_ID,
         id,
