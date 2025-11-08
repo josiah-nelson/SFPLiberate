@@ -51,28 +51,23 @@ The SFPLiberate Home Assistant add-on demonstrates **solid implementation** with
 
 ### 1. Icons and Branding
 
-#### ❌ **MISSING: icon.png**
+#### ✅ **icon.png - ADDED**
 
 **Requirement (HA Best Practice):**
 > "Filename must be icon.png, aspect ratio must be 1x1 (square), recommended 128x128px"
 
 **Current Status:**
 ```
-homeassistant/icon.png.txt  ← Placeholder text file
+homeassistant/icon.png  ← 1024x1024 PNG image ✅
 ```
 
-**Impact:** Add-on appears with generic icon in HA add-on store
+**Compliance:** ✅ Excellent
+- Proper filename (icon.png)
+- Square aspect ratio (1x1)
+- High resolution (1024x1024, exceeds 128px minimum)
+- PNG format
 
-**Fix Required:**
-```bash
-# Create actual icon.png (128x128px, square, PNG format)
-homeassistant/icon.png
-```
-
-**Recommendation:**
-- Create square icon featuring SFP module or Bluetooth symbol
-- Use Home Assistant color palette (blue: #41BDF5)
-- Simple, recognizable design (works at 32x32px)
+**Note:** Icon is larger than recommended 128px, which is acceptable. HA will scale down as needed. Consider creating optimized versions if concerned about file size, but current size (1.2MB) is acceptable for modern networks.
 
 ---
 
@@ -189,23 +184,19 @@ panel_title: SFPLiberate
 
 ### 1. Config File Format
 
-#### ⚠️ **config.yaml vs config.json**
+#### ✅ **config.json (Modern Standard)**
 
 **Current:**
 ```
-homeassistant/config.yaml
+homeassistant/config.json
 ```
 
 **HA Best Practice:**
 > "The configuration is stored in config.json for new add-ons. config.yaml is deprecated but still supported."
 
-**Recommendation:**
-```bash
-# Migrate to config.json
-homeassistant/config.json
-```
+**Status:** ✅ **MIGRATED** - Now using modern JSON format
 
-**Format Difference:**
+**Format:**
 ```json
 {
   "name": "SFPLiberate",
@@ -243,7 +234,7 @@ homeassistant/config.json
 }
 ```
 
-**Impact:** Low (YAML still supported, but JSON is modern standard)
+**Compliance:** ✅ Perfect - Using modern JSON format as recommended
 
 ---
 
@@ -875,19 +866,17 @@ configuration:
 
 ## Recommendations
 
-### Critical (Must Fix)
+### ✅ Completed Improvements
 
-1. **Add icon.png**
-   - Priority: 🔴 **HIGH**
-   - Impact: Visual identity in add-on store
-   - Effort: Low (1 hour design + export)
-   - Action: Create 128x128px square PNG
+1. ~~**Add icon.png**~~ ✅ **DONE**
+   - ✅ Added 1024x1024 PNG icon
+   - ✅ Proper square aspect ratio
+   - ✅ High resolution
 
-2. **Rename config.yaml to config.json**
-   - Priority: 🟡 **MEDIUM**
-   - Impact: Future-proofing (YAML deprecated)
-   - Effort: Low (10 minutes)
-   - Action: Convert YAML to JSON format
+2. ~~**Rename config.yaml to config.json**~~ ✅ **DONE**
+   - ✅ Migrated to modern JSON format
+   - ✅ All fields validated
+   - ✅ Future-proofed
 
 ---
 
@@ -1070,17 +1059,20 @@ The SFPLiberate Home Assistant add-on is **well-architected and functional**, de
 ### Critical Gaps
 
 The main deficiencies are **presentation-related** rather than technical:
-- ❌ Missing visual assets (icon, logo, screenshots)
-- ⚠️ Using deprecated config.yaml instead of config.json
+- ⚠️ Missing visual assets (logo, screenshots) - icon.png now added ✅
 - ❌ No translations for configuration UI
 
 ### Recommendation
 
-**Overall Rating: 4/5 stars** ⭐⭐⭐⭐☆
+**Overall Rating: 4.5/5 stars** ⭐⭐⭐⭐½
+
+**Recent Improvements:**
+1. ✅ Added icon.png (1024x1024)
+2. ✅ Migrated to config.json (modern standard)
 
 **To reach 5/5:**
-1. Add icon.png and screenshots (highest impact)
-2. Migrate to config.json (future-proofing)
+1. Add screenshots (highest remaining impact)
+2. Add logo.png (optional, icon works as fallback)
 3. Add translations/en.yaml (better UX)
 
 **Current State:** Production-ready but needs visual polish for add-on store
