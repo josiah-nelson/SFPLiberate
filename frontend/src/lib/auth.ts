@@ -1,13 +1,20 @@
 /**
  * Authentication utilities for Appwrite integration
- * 
+ *
  * Provides hooks and helpers for role-based access control (RBAC)
  * with support for 'admin' and 'alpha' roles.
+ *
+ * Security features:
+ * - Rate limiting on login/signup
+ * - Sanitized error messages
+ * - Role caching for performance
  */
 
 import type { Models } from 'appwrite';
 import { useEffect, useState } from 'react';
 import { getAppwriteEndpoint, getAppwriteProjectId, isAuthEnabled } from './features';
+import { loginLimiter, signupLimiter } from './security/rateLimiter';
+import { handleAuthError, AuthError } from './security/errors';
 
 type AppwriteModule = typeof import('appwrite');
 type AppwriteClient = import('appwrite').Client;
@@ -111,18 +118,52 @@ export interface AuthState {
 
 /**
  * Get user role from labels or team memberships
+ * Optimized with preference caching to avoid unnecessary API calls
  */
 async function getUserRole(user: Models.User<Models.Preferences>): Promise<UserRole> {
     try {
-        // Check labels first (preferred method)
-        if (user.labels?.includes('admin')) {
-            return 'admin';
-        }
-        if (user.labels?.includes('alpha')) {
-            return 'alpha';
+        // Check preferences cache first (instant, no API call)
+        const cachedRole = user.prefs.role as UserRole | undefined;
+        if (cachedRole) {
+            return cachedRole;
         }
 
-        // Fallback: Check team memberships
+        // Determine role from labels/teams
+        const role = await determineUserRole(user);
+
+        // Cache role in preferences for next time (fire and forget)
+        if (role) {
+            updatePreferences({ ...user.prefs, role }).catch((error) => {
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('Failed to cache role in preferences:', error);
+                }
+            });
+        }
+
+        return role;
+    } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching user role:', error);
+        }
+        return null;
+    }
+}
+
+/**
+ * Determine user role from labels and team memberships
+ * This is the expensive operation we want to avoid repeating
+ */
+async function determineUserRole(user: Models.User<Models.Preferences>): Promise<UserRole> {
+    // Check labels first (fastest - no API call)
+    if (user.labels?.includes('admin')) {
+        return 'admin';
+    }
+    if (user.labels?.includes('alpha')) {
+        return 'alpha';
+    }
+
+    // Fallback: Check team memberships (requires API call)
+    try {
         const teams = await getTeams();
         const memberships = await teams.list();
 
@@ -136,7 +177,9 @@ async function getUserRole(user: Models.User<Models.Preferences>): Promise<UserR
 
         return null;
     } catch (error) {
-        console.error('Error fetching user role:', error);
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching teams:', error);
+        }
         return null;
     }
 }
@@ -238,58 +281,87 @@ export function useAuth(): AuthState {
 
 /**
  * Login with email and password
+ * Includes rate limiting and sanitized error messages
  */
 export async function login(email: string, password: string): Promise<AppwriteUser> {
-    const account = await getAccount();
+    const emailLower = email.toLowerCase().trim();
+
+    // Check rate limit (5 attempts per 15 minutes, then 15 minute lockout)
+    const rateLimit = loginLimiter.check(emailLower, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+    if (!rateLimit.allowed) {
+        const minutes = Math.ceil((rateLimit.retryAfter || 0) / 60);
+        throw new AuthError(
+            `Too many login attempts. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`,
+            'RATE_LIMIT_EXCEEDED'
+        );
+    }
 
     try {
-        await account.createEmailPasswordSession(email, password);
+        const account = await getAccount();
+        await account.createEmailPasswordSession(emailLower, password);
         const user = await account.get();
         const role = await getUserRole(user);
+
+        // Success - reset rate limit
+        loginLimiter.reset(emailLower);
 
         return {
             ...user,
             role,
         };
     } catch (error) {
-        console.error('Login failed:', error);
-        throw error;
+        // Failed login - rate limit will continue to track
+        handleAuthError(error, 'login');
     }
 }
 
 /**
- * Signup with email, password, and invite passphrase
- * 
- * Note: Actual invite validation should happen on backend
+ * Signup with email, password, and name
+ *
+ * Note: Users are added manually by admins with appropriate roles.
+ * This function exists for potential future self-service signup.
  */
 export async function signup(
     email: string,
     password: string,
-    name: string,
-    inviteCode?: string
+    name: string
 ): Promise<AppwriteUser> {
-    const account = await getAccount();
+    const emailLower = email.toLowerCase().trim();
+
+    // Check rate limit (3 signups per hour per email)
+    const rateLimit = signupLimiter.check(emailLower, 3, 60 * 60 * 1000);
+    if (!rateLimit.allowed) {
+        const minutes = Math.ceil((rateLimit.retryAfter || 0) / 60);
+        throw new AuthError(
+            `Too many signup attempts. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`,
+            'RATE_LIMIT_EXCEEDED'
+        );
+    }
 
     try {
+        const account = await getAccount();
+
         // Create account (ID will be auto-generated)
-        await account.create('unique()', email, password, name);
+        await account.create('unique()', emailLower, password, name);
 
         // Log in immediately
-        await account.createEmailPasswordSession(email, password);
+        await account.createEmailPasswordSession(emailLower, password);
 
         const user = await account.get();
 
-        // Note: Role assignment should be handled by backend/admin
-        // For now, new users have no role until assigned
+        // Note: Role assignment should be handled by admin
+        // New users have no role until assigned
         const role = await getUserRole(user);
+
+        // Success - reset rate limit
+        signupLimiter.reset(emailLower);
 
         return {
             ...user,
             role,
         };
     } catch (error) {
-        console.error('Signup failed:', error);
-        throw error;
+        handleAuthError(error, 'signup');
     }
 }
 
@@ -297,13 +369,11 @@ export async function signup(
  * Logout current session
  */
 export async function logout(): Promise<void> {
-    const account = await getAccount();
-
     try {
+        const account = await getAccount();
         await account.deleteSession('current');
     } catch (error) {
-        console.error('Logout failed:', error);
-        throw error;
+        handleAuthError(error, 'logout');
     }
 }
 

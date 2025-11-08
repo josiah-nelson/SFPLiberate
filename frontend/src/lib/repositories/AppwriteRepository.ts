@@ -8,10 +8,12 @@
  * - AppwriteException error handling
  * - Retry logic for transient errors
  * - Query optimization with select()
+ * - Input sanitization (XSS prevention)
  */
 
 import { getAppwriteClient, getAccount } from '../auth';
 import { parseSFPData, calculateSHA256 } from '../sfp/parser';
+import { sanitizeModuleData } from '../security/sanitization';
 import type {
   Module,
   CreateModuleData,
@@ -201,6 +203,14 @@ export class AppwriteRepository implements ModuleRepository {
       const model = data.model || parsed.model;
       const serial = data.serial || parsed.serial;
 
+      // Sanitize all user-provided text inputs (XSS prevention)
+      const sanitized = sanitizeModuleData({
+        name: data.name,
+        vendor,
+        model,
+        serial,
+      });
+
       // Calculate SHA256 if not provided
       const sha256 = data.sha256 || (await calculateSHA256(data.eepromData));
 
@@ -255,17 +265,17 @@ export class AppwriteRepository implements ModuleRepository {
           storage.createFile(USER_EEPROM_BUCKET_ID, ID.unique(), eepromFile, permissions)
         );
 
-        // Create module document with permissions
+        // Create module document with permissions (using sanitized data)
         const doc = await retryWithBackoff(() =>
           databases.createDocument<UserModuleDocument>(
             DATABASE_ID,
             USER_MODULES_COLLECTION_ID,
             ID.unique(),
             {
-              name: data.name,
-              vendor: vendor || undefined,
-              model: model || undefined,
-              serial: serial || undefined,
+              name: sanitized.name,
+              vendor: sanitized.vendor || undefined,
+              model: sanitized.model || undefined,
+              serial: sanitized.serial || undefined,
               sha256,
               eeprom_file_id: fileUpload!.$id,
               size: data.eepromData.byteLength,

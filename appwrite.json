@@ -239,6 +239,89 @@
           "key": "idx_community_created"
         }
       ]
+    },
+    {
+      "$id": "invite_codes",
+      "$permissions": [],
+      "databaseId": "sfpliberate",
+      "name": "Invite Codes",
+      "enabled": true,
+      "documentSecurity": true,
+      "attributes": [
+        {
+          "$id": "code",
+          "type": "string",
+          "size": 64,
+          "required": true,
+          "array": false,
+          "key": "code"
+        },
+        {
+          "$id": "used",
+          "type": "boolean",
+          "required": true,
+          "default": false,
+          "array": false,
+          "key": "used"
+        },
+        {
+          "$id": "usedBy",
+          "type": "string",
+          "size": 36,
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "usedBy"
+        },
+        {
+          "$id": "usedAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "usedAt"
+        },
+        {
+          "$id": "createdBy",
+          "type": "string",
+          "size": 36,
+          "required": true,
+          "array": false,
+          "key": "createdBy"
+        },
+        {
+          "$id": "maxUses",
+          "type": "integer",
+          "required": true,
+          "default": 1,
+          "array": false,
+          "min": 1,
+          "max": 1000,
+          "key": "maxUses"
+        },
+        {
+          "$id": "expiresAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "expiresAt"
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "idx_code",
+          "type": "unique",
+          "attributes": ["code"],
+          "key": "idx_code"
+        },
+        {
+          "$id": "idx_used",
+          "type": "key",
+          "attributes": ["used"],
+          "key": "idx_used"
+        }
+      ]
     }
   ],
   "buckets": [

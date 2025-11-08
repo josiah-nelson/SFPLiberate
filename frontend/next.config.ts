@@ -92,6 +92,78 @@ const nextConfig: NextConfig = {
         ];
     },
 
+    // Security headers
+    async headers() {
+        return [
+            {
+                source: '/:path*',
+                headers: [
+                    // Force HTTPS and prevent downgrade attacks
+                    {
+                        key: 'Strict-Transport-Security',
+                        value: 'max-age=63072000; includeSubDomains; preload'
+                    },
+                    // Prevent clickjacking
+                    {
+                        key: 'X-Frame-Options',
+                        value: 'DENY'
+                    },
+                    // Prevent MIME sniffing
+                    {
+                        key: 'X-Content-Type-Options',
+                        value: 'nosniff'
+                    },
+                    // Control referrer information
+                    {
+                        key: 'Referrer-Policy',
+                        value: 'strict-origin-when-cross-origin'
+                    },
+                    // Restrict browser features
+                    {
+                        key: 'Permissions-Policy',
+                        value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+                    },
+                    // Content Security Policy
+                    {
+                        key: 'Content-Security-Policy',
+                        value: [
+                            "default-src 'self'",
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-eval
+                            "style-src 'self' 'unsafe-inline'",
+                            "img-src 'self' data: https:",
+                            "font-src 'self' data:",
+                            "connect-src 'self' https://*.appwrite.io https://nyc.cloud.appwrite.io",
+                            "frame-ancestors 'none'",
+                            "base-uri 'self'",
+                            "form-action 'self'"
+                        ].join('; ')
+                    }
+                ],
+            },
+        ];
+    },
+
+    // Redirect HTTP to HTTPS in production
+    async redirects() {
+        if (process.env.NODE_ENV === 'production' && !isHomeAssistant) {
+            return [
+                {
+                    source: '/:path*',
+                    has: [
+                        {
+                            type: 'header',
+                            key: 'x-forwarded-proto',
+                            value: 'http',
+                        },
+                    ],
+                    destination: 'https://:host/:path*',
+                    permanent: true,
+                },
+            ];
+        }
+        return [];
+    },
+
     // Enable React strict mode
     reactStrictMode: true,
 
