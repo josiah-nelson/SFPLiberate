@@ -9,11 +9,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, flexRender, type ColumnDef, type SortingState, type VisibilityState } from '@tanstack/react-table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { features } from '@/lib/features';
+import { getModuleRepository } from '@/lib/repositories';
 import { writeSfpFromModuleId } from '@/lib/ble/manager';
 
 type ModuleRow = {
-  id: number;
+  id: string;
   vendor?: string;
   model?: string;
   serial?: string;
@@ -29,15 +29,20 @@ export default function ModulesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  const base = features.api.baseUrl;
+  const repository = getModuleRepository();
 
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch(`${base}/v1/modules`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const list = await res.json();
-      setRows(list || []);
+      const modules = await repository.listModules();
+      setRows(modules.map((m) => ({
+        id: m.id,
+        vendor: m.vendor,
+        model: m.model,
+        serial: m.serial,
+        size: m.size,
+        created_at: m.created_at,
+      })));
     } catch (e: any) {
       toast.error(e?.message || String(e));
     } finally {
@@ -49,7 +54,7 @@ export default function ModulesPage() {
     load();
   }, []);
 
-  const onWrite = async (id: number) => {
+  const onWrite = async (id: string) => {
     try {
       toast('Starting write...', { description: `Module #${id}` });
       await writeSfpFromModuleId(id);
@@ -72,7 +77,15 @@ export default function ModulesPage() {
 
   const columns = useMemo<ColumnDef<ModuleRow>[]>(
     () => [
-      { accessorKey: 'id', header: 'ID', cell: (info) => `#${info.getValue<number>()}` },
+      {
+        accessorKey: 'id',
+        header: 'ID',
+        cell: (info) => {
+          const id = info.getValue<string>();
+          // Show full UUID for Appwrite, numeric ID for standalone
+          return id.length > 10 ? `#${id.substring(0, 8)}...` : `#${id}`;
+        }
+      },
       { accessorKey: 'vendor', header: 'Vendor' },
       { accessorKey: 'model', header: 'Model' },
       { accessorKey: 'serial', header: 'Serial' },

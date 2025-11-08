@@ -15,6 +15,7 @@ import {
 import type { ConnectionMode, ResolvedMode, SfpProfile } from './types';
 import { connectDirect, isWebBluetoothAvailable, startNotifications, writeChunks, writeText } from './webbluetooth';
 import { ESPHomeAdapter } from '@/lib/esphome/websocketAdapter';
+import { getModuleRepository } from '@/lib/repositories';
 
 const TESTED_FIRMWARE_VERSION = '1.0.10';
 
@@ -444,21 +445,20 @@ export async function saveCurrentModule(metadata?: Record<string, any>) {
   if (!buf) throw new Error('No EEPROM captured in memory');
 
   try {
-    const base = features.api.baseUrl;
-    const bytes = new Uint8Array(buf);
-    const b64 = base64Encode(bytes);
+    const repository = getModuleRepository();
 
-    const res = await fetchWithRetry(`${base}/v1/modules`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eeprom_base64: b64, ...metadata }),
+    // Use repository to create module
+    const result = await repository.createModule({
+      name: metadata?.name || 'Unnamed Module',
+      eepromData: buf,
     });
 
-    const out = await res.json();
-    if (!res.ok || (out && out.error)) {
-      throw new APIError(out?.error || `HTTP ${res.status}`, res.status);
-    }
-    return out;
+    // Return in same format as old API for backward compatibility
+    return {
+      status: result.isDuplicate ? 'duplicate' : 'success',
+      message: result.message,
+      id: result.module.id,
+    };
   } catch (error) {
     if (error instanceof APIError) throw error;
     throw new APIError('Failed to save module', undefined, error);
@@ -563,15 +563,12 @@ export function waitForMessage(pattern: string | RegExp, timeoutMs = 5000) {
   });
 }
 
-export async function writeSfpFromModuleId(moduleId: number) {
+export async function writeSfpFromModuleId(moduleId: string) {
   try {
-    const base = features.api.baseUrl;
-    // 1. Fetch binary EEPROM with retry
-    const res = await fetchWithRetry(`${base}/v1/modules/${moduleId}/eeprom`);
-    if (!res.ok) {
-      throw new APIError('Module binary data not found', res.status);
-    }
-    const buf = await res.arrayBuffer();
+    const repository = getModuleRepository();
+
+    // 1. Fetch binary EEPROM using repository
+    const buf = await repository.getEEPROMData(moduleId);
     logLine(`Retrieved ${buf.byteLength} bytes of EEPROM data.`);
 
     // 2. Initiate write
