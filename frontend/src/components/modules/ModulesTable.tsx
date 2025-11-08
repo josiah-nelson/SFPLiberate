@@ -82,7 +82,7 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
     if (!query) return true;
     const q = query.toLowerCase();
     return (
-      m.id.toLowerCase().includes(q) ||
+      String(m.id).toLowerCase().includes(q) ||
       (m.vendor || '').toLowerCase().includes(q) ||
       (m.model || '').toLowerCase().includes(q) ||
       (m.serial || '').toLowerCase().includes(q)
