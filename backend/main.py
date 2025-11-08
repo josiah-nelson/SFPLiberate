@@ -17,3 +17,7 @@ if str(backend_dir) not in sys.path:
 
 # Now import the actual application
 from app.main import app
+
+# Export the FastAPI app as 'main' for Appwrite Functions
+# Appwrite's Python runtime will detect this as an ASGI app
+main = app
