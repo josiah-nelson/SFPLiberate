@@ -104,7 +104,7 @@ LABEL \
     io.hass.description="Bluetooth companion for Ubiquiti SFP Wizard" \
     io.hass.arch="aarch64|amd64|armhf|armv7" \
     io.hass.type="addon" \
-    io.hass.version="1.0.0" \
+    io.hass.version="0.2.0" \
     maintainer="Josiah Nelson <https://github.com/josiah-nelson>" \
     org.opencontainers.image.title="SFPLiberate" \
     org.opencontainers.image.description="Bluetooth companion for Ubiquiti SFP Wizard" \

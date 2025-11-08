@@ -15,6 +15,9 @@ export HASSIO_TOKEN="${SUPERVISOR_TOKEN}"
 export HA_API_URL="http://supervisor/core/api"
 export HA_WS_URL="ws://supervisor/core/websocket"
 
+# Ingress path handling
+export INGRESS_PATH="${INGRESS_ENTRY:-}"
+
 # Add-on specific paths
 export DATABASE_FILE="/config/sfpliberate/sfp_library.db"
 export SUBMISSIONS_DIR="/config/sfpliberate/submissions"

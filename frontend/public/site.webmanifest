@@ -17,5 +17,5 @@
   "theme_color": "#1E88E5",
   "background_color": "#ffffff",
   "display": "standalone",
-  "start_url": "/"
+  "start_url": "."
 }
