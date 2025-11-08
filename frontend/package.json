@@ -5,14 +5,15 @@
     "website": "https://nextjs-16-starter-shadcn.vercel.app/",
     "license": "MIT",
     "engines": {
-        "node": ">=24.11.0",
-        "npm": ">=11.6.1"
+        "node": ">=22.21.1",
+        "npm": ">=10.9.4"
     },
     "scripts": {
         "dev": "next dev --turbopack",
         "build": "next build --turbopack",
+        "postbuild": "cp -r .next/static .next/standalone/.next/static && if [ -d public ]; then cp -r public .next/standalone/public; fi",
         "start": "next start",
-        "lint": "next lint",
+        "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
         "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
         "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
         "type-check": "tsc --noEmit"
@@ -63,6 +64,8 @@
         "lucide-react": "^0.552.0",
         "next": "16.0.1",
         "next-themes": "^0.4.6",
+        "node-appwrite": "^20.3.0",
+        "picomatch": "^4.0.3",
         "react": "19.2.0",
         "react-day-picker": "^9.11.1",
         "react-dom": "19.2.0",

@@ -1,0 +1,335 @@
+name: Create Release
+
+# =============================================================================
+# Automated Release Workflow
+# =============================================================================
+#
+# This workflow automates the release process:
+# 1. Updates version in sfpliberate/config.yaml
+# 2. Commits version change to main branch
+# 3. Creates and pushes git tag
+# 4. Creates GitHub release
+# 5. Triggers ha-addon-build.yml to build and push Docker images
+#
+# Usage:
+#   1. Go to Actions → Create Release → Run workflow
+#   2. Enter version (e.g., "0.2.0", "1.0.0", "1.2.3")
+#   3. Optionally mark as pre-release
+#   4. Wait for workflow to complete and images to build
+#
+# The workflow validates semantic versioning and prevents duplicate releases.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (semantic versioning: X.Y.Z)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag: ${{ steps.validate.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate version format
+        id: validate
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+
+          # Remove leading 'v' if present
+          VERSION="${VERSION#v}"
+
+          # Validate semantic versioning format (X.Y.Z)
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "❌ ERROR: Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z (e.g., 0.2.0, 1.0.0, 1.2.3)"
+            exit 1
+          fi
+
+          echo "✅ Version format valid: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag already exists
+        run: |
+          TAG="${{ steps.validate.outputs.tag }}"
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
+            echo "❌ ERROR: Tag $TAG already exists"
+            echo "Please use a different version number"
+            exit 1
+          fi
+          echo "✅ Tag $TAG is available"
+
+      - name: Check if version already in config.yaml
+        run: |
+          VERSION="${{ steps.validate.outputs.version }}"
+          CURRENT_VERSION=$(grep '^version:' sfpliberate/config.yaml | awk '{print $2}' | tr -d '"')
+
+          if [ "$CURRENT_VERSION" = "$VERSION" ]; then
+            echo "⚠️  WARNING: config.yaml already has version $VERSION"
+            echo "This may indicate the release was already attempted"
+          else
+            echo "✅ Current version: $CURRENT_VERSION → New version: $VERSION"
+          fi
+
+  update-version:
+    name: Update Version
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update config.yaml version
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          # Update version in config.yaml
+          sed -i "s/^version: .*/version: \"$VERSION\"/" sfpliberate/config.yaml
+
+          # Verify the change
+          NEW_VERSION=$(grep '^version:' sfpliberate/config.yaml | awk '{print $2}' | tr -d '"')
+          if [ "$NEW_VERSION" != "$VERSION" ]; then
+            echo "❌ ERROR: Failed to update version in config.yaml"
+            exit 1
+          fi
+
+          echo "✅ Updated config.yaml to version $VERSION"
+
+      - name: Commit version change
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          git add sfpliberate/config.yaml
+
+          if git diff --cached --quiet; then
+            echo "ℹ️  No changes to commit (version already updated)"
+          else
+            git commit -m "chore: bump version to $VERSION [skip ci]"
+            git push origin main
+            echo "✅ Committed and pushed version update"
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    needs: [validate, update-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create and push tag
+        run: |
+          TAG="${{ needs.validate.outputs.tag }}"
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Pull latest changes (including version commit)
+          git pull origin main
+
+          # Create annotated tag
+          git tag -a "$TAG" -m "Release $VERSION"
+
+          # Push tag
+          git push origin "$TAG"
+
+          echo "✅ Created and pushed tag $TAG"
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          TAG="${{ needs.validate.outputs.tag }}"
+          REPO="${{ github.repository }}"
+
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found - this is the first release"
+
+            # Write first release notes using heredoc
+            cat > release-notes.md <<-EOF
+          ## SFPLiberate v${VERSION}
+
+          This is the first release of the SFPLiberate Home Assistant add-on.
+
+          ### Installation
+
+          1. Add this repository to Home Assistant:
+             \`\`\`
+             https://github.com/${REPO}
+             \`\`\`
+
+          2. Install the **SFPLiberate** add-on from the add-on store
+
+          3. Configure your settings and start the add-on
+
+          ### Features
+
+          - Web Bluetooth API support for direct device connection
+          - ESPHome proxy fallback for iOS/Safari users
+          - Local SQLite database for module storage
+          - Automatic SFP Wizard device discovery
+          - Module library management (save, clone, delete)
+
+          ### Documentation
+
+          - [Add-on Documentation](https://github.com/${REPO}/blob/main/sfpliberate/DOCS.md)
+          - [Main README](https://github.com/${REPO}/blob/main/README.md)
+          - [Changelog](https://github.com/${REPO}/blob/main/sfpliberate/CHANGELOG.md)
+          EOF
+          else
+            echo "Generating changes since $PREV_TAG"
+
+            # Get commit messages since previous tag
+            COMMITS=$(git log --pretty=format:"- %s (%h)" "$PREV_TAG..$TAG" 2>/dev/null || echo "No commits found")
+
+            # Write incremental release notes using heredoc
+            cat > release-notes.md <<-EOF
+          ## SFPLiberate v${VERSION}
+
+          ### Changes Since $PREV_TAG
+
+          ${COMMITS}
+
+          ### Installation
+
+          1. Add this repository to Home Assistant:
+             \`\`\`
+             https://github.com/${REPO}
+             \`\`\`
+
+          2. Go to Add-ons -> Add-on Store -> SFPLiberate
+          3. Click Install (or Update if already installed)
+
+          ### Documentation
+
+          - [Add-on Documentation](https://github.com/${REPO}/blob/main/sfpliberate/DOCS.md)
+          - [Changelog](https://github.com/${REPO}/blob/main/sfpliberate/CHANGELOG.md)
+          EOF
+          fi
+
+          echo "Generated release notes"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: Release ${{ needs.validate.outputs.version }}
+          body_path: release-notes.md
+          prerelease: ${{ github.event.inputs.prerelease }}
+          draft: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create deployment summary
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          TAG="${{ needs.validate.outputs.tag }}"
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🎉 Release $VERSION Created Successfully
+
+          **Tag**: \`$TAG\`
+          **Pre-release**: ${{ github.event.inputs.prerelease }}
+          **Triggered by**: @${{ github.actor }}
+
+          ### Next Steps
+
+          1. ✅ Tag created and pushed
+          2. ✅ GitHub Release published
+          3. 🔄 Docker images are building now (check Actions tab)
+          4. ⏳ Wait ~15-20 minutes for all 4 architectures to build
+          5. 🚀 Add-on will be installable once images are pushed to GHCR
+
+          ### Docker Images Being Built
+
+          - \`ghcr.io/${{ github.repository_owner }}/sfpliberate-addon-aarch64:$VERSION\`
+          - \`ghcr.io/${{ github.repository_owner }}/sfpliberate-addon-amd64:$VERSION\`
+          - \`ghcr.io/${{ github.repository_owner }}/sfpliberate-addon-armhf:$VERSION\`
+          - \`ghcr.io/${{ github.repository_owner }}/sfpliberate-addon-armv7:$VERSION\`
+
+          ### Verify Installation
+
+          After builds complete:
+          1. Go to Home Assistant → Settings → Add-ons → Add-on Store
+          2. Add repository: \`https://github.com/${{ github.repository }}\`
+          3. Install **SFPLiberate** add-on
+          4. Verify version shows as \`$VERSION\`
+
+          ### Monitor Build Progress
+
+          - [View ha-addon-build workflow runs](https://github.com/${{ github.repository }}/actions/workflows/ha-addon-build.yml)
+          - [View release](https://github.com/${{ github.repository }}/releases/tag/$TAG)
+          - [View packages](https://github.com/${{ github.repository_owner }}?tab=packages)
+          EOF
+
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    needs: [validate, update-version, create-release]
+    if: failure()
+    steps:
+      - name: Create failure summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ❌ Release Failed
+
+          **Version**: ${{ github.event.inputs.version }}
+          **Triggered by**: @${{ github.actor }}
+
+          ### Troubleshooting
+
+          Check the failed job logs above. Common issues:
+
+          1. **Invalid version format**
+             - Use semantic versioning: X.Y.Z (e.g., 0.2.0, 1.0.0)
+             - Don't include 'v' prefix (it's added automatically)
+
+          2. **Tag already exists**
+             - Check if this version was already released
+             - Use a different version number
+             - View existing tags: https://github.com/${{ github.repository }}/tags
+
+          3. **Permission issues**
+             - Ensure GITHUB_TOKEN has write permissions
+             - Check Settings → Actions → Workflow permissions
+
+          4. **Merge conflicts**
+             - Ensure main branch is up-to-date
+             - No uncommitted changes in config.yaml
+
+          ### Retry
+
+          Fix the issue and re-run this workflow with a new version number.
+          EOF

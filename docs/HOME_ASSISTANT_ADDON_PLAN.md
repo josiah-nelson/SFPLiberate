@@ -10,10 +10,10 @@ This plan outlines the implementation of SFPLiberate as a Home Assistant Add-On,
 
 ### **1.1 New Directory Structure**
 
-Create a new `/homeassistant` directory at the root of the repository:
+Create a new `/sfpliberate` directory at the root of the repository:
 
 ```
-/homeassistant/
+/sfpliberate/
 ├── config.yaml              # Add-on metadata & configuration schema
 ├── Dockerfile               # Multi-stage build (backend + frontend)
 ├── run.sh                   # Startup script
@@ -457,8 +457,8 @@ COPY --from=frontend-build /frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-build /frontend/public /app/frontend/public
 
 # Copy add-on files
-COPY homeassistant/run.sh /
-COPY homeassistant/rootfs /
+COPY sfpliberate/run.sh /
+COPY sfpliberate/rootfs /
 
 RUN chmod +x /run.sh
 
@@ -589,7 +589,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'homeassistant/**'
+      - 'sfpliberate/**'
       - 'backend/**'
       - 'frontend/**'
   release:
@@ -706,7 +706,7 @@ services:
   addon:
     build:
       context: .
-      dockerfile: homeassistant/Dockerfile
+      dockerfile: sfpliberate/Dockerfile
     environment:
       - HA_API_URL=http://host.docker.internal:8123/api
       - SUPERVISOR_TOKEN=${HA_TOKEN}
@@ -855,16 +855,16 @@ Add section under "Deployment Modes":
 **Development:**
 ```bash
 # Build add-on locally
-docker build -f homeassistant/Dockerfile -t sfpliberate-addon .
+docker build -f sfpliberate/Dockerfile -t sfpliberate-addon .
 
 # Test in dev mode
 docker-compose -f docker-compose.ha-dev.yml up
 ```
 
 **Key Files:**
-- `homeassistant/config.yaml` - Add-on metadata
-- `homeassistant/Dockerfile` - Multi-stage build
-- `homeassistant/run.sh` - Startup script
+- `sfpliberate/config.yaml` - Add-on metadata
+- `sfpliberate/Dockerfile` - Multi-stage build
+- `sfpliberate/run.sh` - Startup script
 - `backend/app/services/ha_bluetooth/` - HA Bluetooth client
 - `frontend/src/components/ha/` - HA-specific UI components
 ```

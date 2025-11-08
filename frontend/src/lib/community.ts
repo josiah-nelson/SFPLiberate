@@ -190,7 +190,7 @@ export async function getModulePhotoUrl(photoId: string): Promise<string> {
     try {
         const storage = await getStorage();
         const result = storage.getFileView(PHOTOS_BUCKET_ID, photoId);
-        return result.href;
+        return result.toString();
     } catch (error) {
         console.error('Failed to get module photo URL:', error);
         throw new Error('Failed to load module photo');

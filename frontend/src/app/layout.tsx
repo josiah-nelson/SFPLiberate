@@ -25,9 +25,10 @@ export const metadata: Metadata = {
     title: 'SFPLiberate',
     description: 'Bluetooth companion for Ubiquiti SFP Wizard - capture, clone, and manage SFP module EEPROM profiles',
     icons: {
-        icon: '/icon.png',
-        apple: '/icon.png',
+        icon: '/favicon.ico',
+        apple: '/apple-touch-icon.png',
     },
+    manifest: '/site.webmanifest',
     themeColor: '#1E88E5',
 };
 

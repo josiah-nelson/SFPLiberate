@@ -208,6 +208,17 @@ Or if duplicate:
    uvicorn main:app --reload --host 0.0.0.0 --port 80
    ```
 
+### Dependency Management
+
+- Poetry (`pyproject.toml` / `poetry.lock`) is the source of truth for backend dependencies.
+- Appwrite’s runtime expects a `requirements.txt`, so we keep the exported file (`backend/requirements.txt`) in git.
+- After adding or updating packages with Poetry, regenerate the export before committing (requires the [`poetry-plugin-export`](https://python-poetry.org/docs/plugins/#official-plugins)):
+  ```bash
+  poetry lock --no-update
+  poetry export -f requirements.txt --output requirements.txt --without-hashes
+  ```
+- The Appwrite function workflow also runs the export step to guarantee the file stays in sync during CI deployments.
+
 ### Docker Build
 
 ```bash

@@ -6,8 +6,10 @@ from typing import List, Optional, Dict, Any, Tuple
 import aiohttp
 import json
 import os
+import time
 
 from .schemas import HABluetoothDevice, HADeviceConnectionResponse
+from .ble_tracer import get_tracer
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +61,15 @@ class HomeAssistantBluetoothClient:
             f"Initialized HA Bluetooth client: api_url={self.ha_api_url}, "
             f"patterns={self.device_patterns}"
         )
+
+        # Log session info to tracer
+        tracer = get_tracer()
+        tracer.log_session_info({
+            "mode": "Home Assistant Add-on",
+            "api_url": self.ha_api_url,
+            "ws_url": self.ha_ws_url,
+            "device_patterns": self.device_patterns,
+        })
 
     async def start(self) -> None:
         """Initialize connection to HA API and start listening for device updates."""
@@ -147,26 +158,20 @@ class HomeAssistantBluetoothClient:
                 "Make sure the device is advertising and matches configured patterns."
             )
 
-        # For now, return cached UUIDs or defaults for SFP Wizard
-        # In a future version, this would call HA's bluetooth.connect service
-        # and enumerate GATT services via HA's Bluetooth integration
+        # TODO: UUIDs should be retrieved from discovered device database
+        # For now, this is a placeholder that will need to be implemented
+        # when database storage for discovered devices is added
+        #
+        # Options:
+        # 1. Query database for previously discovered device UUIDs by MAC
+        # 2. Use HA Bluetooth integration to enumerate GATT services
+        # 3. Require Web Bluetooth discovery before HA proxy connection
 
-        # Check if we have cached UUIDs from environment
-        service_uuid = os.getenv("SFP_SERVICE_UUID", "8E60F02E-F699-4865-B83F-F40501752184")
-        write_uuid = os.getenv("SFP_WRITE_CHAR_UUID", "9280F26C-A56F-43EA-B769-D5D732E1AC67")
-        notify_uuid = os.getenv("SFP_NOTIFY_CHAR_UUID", "DC272A22-43F2-416B-8FA5-63A071542FAC")
-
-        logger.info(
-            f"Using cached UUIDs for {mac_address}: "
-            f"service={service_uuid}, notify={notify_uuid}, write={write_uuid}"
-        )
-
-        return HADeviceConnectionResponse(
-            service_uuid=service_uuid,
-            notify_char_uuid=notify_uuid,
-            write_char_uuid=write_uuid,
-            device_name=device.name,
-            source=device.source,
+        # Temporary: UUIDs must be discovered first - no manual configuration
+        raise NotImplementedError(
+            "HA Bluetooth proxy requires device UUIDs to be discovered first. "
+            "Please use Web Bluetooth discovery to enumerate service UUIDs, "
+            "or implement database storage for discovered devices."
         )
 
     @property
@@ -179,6 +184,12 @@ class HomeAssistantBluetoothClient:
         if not self._session:
             logger.warning("Cannot discover devices - session not initialized")
             return
+
+        tracer = get_tracer()
+        tracer.log_device_scan_start(
+            patterns=self.device_patterns,
+            filters={"source": "Home Assistant API"}
+        )
 
         try:
             async with self._session.get(f"{self.ha_api_url}/states") as resp:
@@ -211,12 +222,26 @@ class HomeAssistantBluetoothClient:
                     continue
 
                 # Create device object
-                discovered[mac] = HABluetoothDevice(
+                device = HABluetoothDevice(
                     mac=mac,
                     name=name,
                     rssi=attrs.get("rssi", -100),
                     source=attrs.get("source", "hass_bluetooth"),
                     last_seen=state.get("last_changed"),
+                )
+                discovered[mac] = device
+
+                # Log discovery to tracer
+                tracer.log_device_discovered(
+                    mac=mac,
+                    name=name,
+                    rssi=attrs.get("rssi", -100),
+                    advertisement_data={
+                        "entity_id": entity_id,
+                        "source": attrs.get("source", "hass_bluetooth"),
+                        "last_seen": state.get("last_changed"),
+                        "attributes": attrs,
+                    }
                 )
 
             # Update cache
@@ -225,6 +250,7 @@ class HomeAssistantBluetoothClient:
 
         except Exception as e:
             logger.error(f"Error discovering devices: {e}", exc_info=True)
+            tracer.log_error("Device Discovery", str(e))
 
     def _is_bluetooth_entity(self, entity_id: str, attrs: Dict[str, Any]) -> bool:
         """Check if entity is Bluetooth-related."""
@@ -331,12 +357,27 @@ class HomeAssistantBluetoothClient:
                 return
 
             # Update cache
-            self._discovered_devices[mac] = HABluetoothDevice(
+            device = HABluetoothDevice(
                 mac=mac,
                 name=name,
                 rssi=attrs.get("rssi", -100),
                 source=attrs.get("source", "hass_bluetooth"),
                 last_seen=new_state.get("last_changed"),
+            )
+            self._discovered_devices[mac] = device
+
+            # Log to tracer
+            tracer = get_tracer()
+            tracer.log_device_discovered(
+                mac=mac,
+                name=name,
+                rssi=attrs.get("rssi", -100),
+                advertisement_data={
+                    "entity_id": entity_id,
+                    "source": attrs.get("source", "hass_bluetooth"),
+                    "last_seen": new_state.get("last_changed"),
+                    "update_via": "websocket",
+                }
             )
 
             logger.debug(f"Updated device via WebSocket: {name} ({mac})")

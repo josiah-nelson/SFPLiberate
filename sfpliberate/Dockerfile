@@ -1,9 +1,19 @@
+# BUILD_FROM is passed by Home Assistant builder from build.yaml
+# Must be declared globally for multi-stage builds
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22
+
 # ============================================================================
 # Stage 1: Backend build
 # ============================================================================
-FROM python:3.14-slim AS backend-build
+# Use build platform (not target) to avoid slow QEMU cross-compilation
+FROM --platform=$BUILDPLATFORM python:3.12-slim AS backend-build
 
 WORKDIR /backend
+
+# Install build dependencies for compiling Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN pip install --no-cache-dir poetry==1.8.5
@@ -23,7 +33,8 @@ COPY backend/app /backend/app
 # ============================================================================
 # Stage 2: Frontend build
 # ============================================================================
-FROM node:20-alpine AS frontend-build
+# Use build platform (not target) to avoid slow QEMU cross-compilation
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-build
 
 WORKDIR /frontend
 
@@ -46,7 +57,9 @@ RUN npm run build
 # ============================================================================
 # Stage 3: Final runtime image
 # ============================================================================
-FROM ghcr.io/hassio-addons/base:15.0.0
+# Re-declare BUILD_FROM for this stage
+ARG BUILD_FROM
+FROM ${BUILD_FROM}
 
 # Install runtime dependencies
 RUN apk add --no-cache \
@@ -62,16 +75,16 @@ RUN apk add --no-cache \
 
 # Copy backend from build stage
 COPY --from=backend-build /backend/app /app/backend/app
-COPY --from=backend-build /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=backend-build /usr/local/lib/python3.12/site-packages /usr/lib/python3.12/site-packages
 
 # Copy frontend from build stage
 COPY --from=frontend-build /frontend/.next/standalone /app/frontend
 COPY --from=frontend-build /frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-build /frontend/public /app/frontend/public
 
-# Copy add-on files
-COPY homeassistant/run.sh /
-COPY homeassistant/rootfs /
+# Copy add-on files (build context is repo root, so prefix with sfpliberate/)
+COPY sfpliberate/run.sh /
+COPY sfpliberate/rootfs /
 
 # Make scripts executable
 RUN chmod +x /run.sh && \

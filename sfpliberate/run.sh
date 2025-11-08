@@ -6,6 +6,8 @@ export AUTO_DISCOVER=$(bashio::config 'auto_discover')
 export DEVICE_NAME_PATTERNS=$(bashio::config 'device_name_patterns' | jq -c '.')
 export CONNECTION_TIMEOUT=$(bashio::config 'connection_timeout')
 export DEVICE_EXPIRY_SECONDS=$(bashio::config 'device_expiry_seconds')
+export BLE_TRACE_LOGGING=$(bashio::config 'ble_trace_logging')
+export ENABLE_DEBUG_BLE=$(bashio::config 'enable_debug_ble')
 
 # Home Assistant API access
 export SUPERVISOR_TOKEN="${SUPERVISOR_TOKEN}"
@@ -32,5 +34,12 @@ bashio::log.info "Log Level: ${LOG_LEVEL}"
 bashio::log.info "Auto Discovery: ${AUTO_DISCOVER}"
 bashio::log.info "Device Patterns: ${DEVICE_NAME_PATTERNS}"
 bashio::log.info "Database: ${DATABASE_FILE}"
+
+# Log BLE tracing status
+if bashio::config.true 'ble_trace_logging'; then
+    bashio::log.info "BLE Trace Logging: ENABLED"
+else
+    bashio::log.info "BLE Trace Logging: DISABLED"
+fi
 
 # Note: Actual service startup is handled by s6-overlay services in /etc/services.d/

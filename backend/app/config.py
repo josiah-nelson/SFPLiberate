@@ -57,11 +57,6 @@ class Settings(BaseSettings):
     # Public mode (hide proxy UI and advanced options by default)
     public_mode: bool = False
 
-    # Optional default SFP profile via env (self-hosted convenience)
-    sfp_service_uuid: str | None = None
-    sfp_write_char_uuid: str | None = None
-    sfp_notify_char_uuid: str | None = None
-
     # Path to bind-mounted env file for persistence (self-hosted)
     ble_env_path: str | None = "/app/.env"
 
@@ -74,6 +69,23 @@ class Settings(BaseSettings):
     auto_discover: bool = True
     connection_timeout: int = 30
     device_expiry_seconds: int = 300
+
+    # Bluetooth Configuration (HA Add-on)
+    scan_interval: int = 5  # Bluetooth scan interval in seconds
+    rssi_threshold: int = -80  # Minimum RSSI (dBm) to show devices
+    max_devices: int = 50  # Maximum number of devices to track
+    bluetooth_adapter: str = "default"  # Bluetooth adapter (default/hci0/hci1/etc)
+
+    # Performance & Monitoring
+    enable_metrics: bool = False  # Collect performance metrics
+    enable_debug_ble: bool = False  # Verbose BLE debugging
+    ble_trace_logging: bool = False  # Comprehensive BLE trace logging
+
+    # Database Backup (HA Add-on)
+    database_backup_enabled: bool = True
+    database_backup_interval: int = 24  # Backup interval in hours
+    database_backup_max_count: int = 7  # Maximum number of backups to keep
+    database_backup_path: str = "/config/sfpliberate/backups"  # Backup directory
 
 
 @lru_cache

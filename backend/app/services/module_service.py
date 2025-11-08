@@ -1,7 +1,6 @@
 """Business logic for SFP module operations."""
 
 import hashlib
-from typing import Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +16,7 @@ class ModuleService:
         """Initialize service with database session."""
         self.repository = ModuleRepository(session)
 
-    async def add_module(self, name: str, eeprom_data: bytes) -> Tuple[SFPModule, bool]:
+    async def add_module(self, name: str, eeprom_data: bytes) -> tuple[SFPModule, bool]:
         """
         Add a module with duplicate detection.
 

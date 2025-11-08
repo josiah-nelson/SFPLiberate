@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import esphome, esphome_websocket, health, modules, submissions, esphome_status
+from app.api.v1 import health, modules, submissions, esphome_status
 from app.config import get_settings
 
 api_router = APIRouter()
@@ -24,6 +24,8 @@ if settings.ha_addon_mode:
     api_router.include_router(ha_bluetooth.router, tags=["ha-bluetooth"])
 elif settings.esphome_proxy_mode:
     # Standalone mode with ESPHome proxy
+    # Import ESPHome modules only when needed (they require zeroconf)
+    from app.api.v1 import esphome, esphome_websocket
     # Always include ESPHome status endpoint (reports enabled/disabled)
     api_router.include_router(esphome_status.router, tags=["esphome"])
     api_router.include_router(esphome.router, tags=["esphome-proxy"])

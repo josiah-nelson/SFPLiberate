@@ -44,6 +44,8 @@ yarn-debug.log*
 yarn-error.log*
 .npm/
 .yarn/
+.env.appwrite
+doppler.yaml
 
 # Docker
 *.log

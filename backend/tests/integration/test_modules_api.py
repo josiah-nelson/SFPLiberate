@@ -1,7 +1,8 @@
 """Integration tests for modules API."""
 
-import pytest
 import base64
+
+import pytest
 
 
 @pytest.mark.asyncio
