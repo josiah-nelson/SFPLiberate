@@ -82,9 +82,9 @@ COPY --from=frontend-build /frontend/.next/standalone /app/frontend
 COPY --from=frontend-build /frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-build /frontend/public /app/frontend/public
 
-# Copy add-on files (build context is repo root, so prefix with sfpliberate/)
-COPY sfpliberate/run.sh /
-COPY sfpliberate/rootfs /
+# Copy add-on files (build context is repo root, so prefix with homeassistant/)
+COPY homeassistant/run.sh /
+COPY homeassistant/rootfs /
 
 # Make scripts executable
 RUN chmod +x /run.sh && \

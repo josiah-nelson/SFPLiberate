@@ -5,7 +5,7 @@ name: Create Release
 # =============================================================================
 #
 # This workflow automates the release process:
-# 1. Updates version in sfpliberate/config.yaml
+# 1. Updates version in homeassistant/config.yaml
 # 2. Commits version change to main branch
 # 3. Creates and pushes git tag
 # 4. Creates GitHub release
@@ -79,7 +79,7 @@ jobs:
       - name: Check if version already in config.yaml
         run: |
           VERSION="${{ steps.validate.outputs.version }}"
-          CURRENT_VERSION=$(grep '^version:' sfpliberate/config.yaml | awk '{print $2}' | tr -d '"')
+          CURRENT_VERSION=$(grep '^version:' homeassistant/config.yaml | awk '{print $2}' | tr -d '"')
 
           if [ "$CURRENT_VERSION" = "$VERSION" ]; then
             echo "⚠️  WARNING: config.yaml already has version $VERSION"
@@ -108,10 +108,10 @@ jobs:
           VERSION="${{ needs.validate.outputs.version }}"
 
           # Update version in config.yaml
-          sed -i "s/^version: .*/version: \"$VERSION\"/" sfpliberate/config.yaml
+          sed -i "s/^version: .*/version: \"$VERSION\"/" homeassistant/config.yaml
 
           # Verify the change
-          NEW_VERSION=$(grep '^version:' sfpliberate/config.yaml | awk '{print $2}' | tr -d '"')
+          NEW_VERSION=$(grep '^version:' homeassistant/config.yaml | awk '{print $2}' | tr -d '"')
           if [ "$NEW_VERSION" != "$VERSION" ]; then
             echo "❌ ERROR: Failed to update version in config.yaml"
             exit 1
@@ -123,7 +123,7 @@ jobs:
         run: |
           VERSION="${{ needs.validate.outputs.version }}"
 
-          git add sfpliberate/config.yaml
+          git add homeassistant/config.yaml
 
           if git diff --cached --quiet; then
             echo "ℹ️  No changes to commit (version already updated)"
@@ -203,9 +203,9 @@ jobs:
 
           ### Documentation
 
-          - [Add-on Documentation](https://github.com/${REPO}/blob/main/sfpliberate/DOCS.md)
+          - [Add-on Documentation](https://github.com/${REPO}/blob/main/homeassistant/DOCS.md)
           - [Main README](https://github.com/${REPO}/blob/main/README.md)
-          - [Changelog](https://github.com/${REPO}/blob/main/sfpliberate/CHANGELOG.md)
+          - [Changelog](https://github.com/${REPO}/blob/main/homeassistant/CHANGELOG.md)
           EOF
           else
             echo "Generating changes since $PREV_TAG"
@@ -233,8 +233,8 @@ jobs:
 
           ### Documentation
 
-          - [Add-on Documentation](https://github.com/${REPO}/blob/main/sfpliberate/DOCS.md)
-          - [Changelog](https://github.com/${REPO}/blob/main/sfpliberate/CHANGELOG.md)
+          - [Add-on Documentation](https://github.com/${REPO}/blob/main/homeassistant/DOCS.md)
+          - [Changelog](https://github.com/${REPO}/blob/main/homeassistant/CHANGELOG.md)
           EOF
           fi
 

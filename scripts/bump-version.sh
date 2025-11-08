@@ -4,7 +4,7 @@
 # Version Bump Script for SFPLiberate Add-on
 # =============================================================================
 #
-# Updates the version in sfpliberate/config.yaml
+# Updates the version in homeassistant/config.yaml
 #
 # Usage:
 #   ./scripts/bump-version.sh <version>
@@ -13,7 +13,7 @@
 #
 # This script:
 # 1. Validates semantic versioning format
-# 2. Updates sfpliberate/config.yaml
+# 2. Updates homeassistant/config.yaml
 # 3. Shows git diff for review
 # 4. Prompts to commit changes
 #
@@ -80,7 +80,7 @@ print_success "Version format valid: $VERSION"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-CONFIG_FILE="$REPO_ROOT/sfpliberate/config.yaml"
+CONFIG_FILE="$REPO_ROOT/homeassistant/config.yaml"
 
 # Check if config.yaml exists
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -118,7 +118,7 @@ echo ""
 print_info "Changes:"
 echo ""
 cd "$REPO_ROOT"
-git diff sfpliberate/config.yaml
+git diff homeassistant/config.yaml
 
 # Ask if user wants to commit
 echo ""
@@ -126,7 +126,7 @@ read -p "Commit this change? (y/N): " -n 1 -r
 echo ""
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    git add sfpliberate/config.yaml
+    git add homeassistant/config.yaml
     git commit -m "chore: bump version to $VERSION"
     print_success "Changes committed"
 
@@ -139,10 +139,10 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "     git tag v$VERSION && git push origin v$VERSION"
 else
     print_info "Changes not committed. Review with:"
-    echo "  git diff sfpliberate/config.yaml"
+    echo "  git diff homeassistant/config.yaml"
     echo ""
     print_info "To commit manually:"
-    echo "  git add sfpliberate/config.yaml"
+    echo "  git add homeassistant/config.yaml"
     echo "  git commit -m 'chore: bump version to $VERSION'"
 fi
 

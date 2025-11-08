@@ -13,7 +13,7 @@ This plan outlines the implementation of SFPLiberate as a Home Assistant Add-On,
 Create a new `/sfpliberate` directory at the root of the repository:
 
 ```
-/sfpliberate/
+/homeassistant/
 ├── config.yaml              # Add-on metadata & configuration schema
 ├── Dockerfile               # Multi-stage build (backend + frontend)
 ├── run.sh                   # Startup script
@@ -103,12 +103,12 @@ export HA_API_URL="http://supervisor/core/api"
 export HA_WS_URL="ws://supervisor/core/websocket"
 
 # Add-on specific paths
-export DATABASE_FILE="/config/sfpliberate/sfp_library.db"
-export SUBMISSIONS_DIR="/config/sfpliberate/submissions"
+export DATABASE_FILE="/config/homeassistant/sfp_library.db"
+export SUBMISSIONS_DIR="/config/homeassistant/submissions"
 export DATA_DIR="/config/sfpliberate"
 
 # Create directories
-mkdir -p /config/sfpliberate/submissions
+mkdir -p /config/homeassistant/submissions
 
 # Set deployment mode to HA addon
 export DEPLOYMENT_MODE="homeassistant"
@@ -457,8 +457,8 @@ COPY --from=frontend-build /frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-build /frontend/public /app/frontend/public
 
 # Copy add-on files
-COPY sfpliberate/run.sh /
-COPY sfpliberate/rootfs /
+COPY homeassistant/run.sh /
+COPY homeassistant/rootfs /
 
 RUN chmod +x /run.sh
 
@@ -589,7 +589,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'sfpliberate/**'
+      - 'homeassistant/**'
       - 'backend/**'
       - 'frontend/**'
   release:
@@ -644,7 +644,7 @@ Users can access this via:
 The add-on uses HA's standard paths:
 
 ```bash
-/config/sfpliberate/               # Main data directory
+/config/homeassistant/               # Main data directory
 ├── sfp_library.db                 # SQLite database
 └── submissions/                   # User-submitted modules
 ```
@@ -706,7 +706,7 @@ services:
   addon:
     build:
       context: .
-      dockerfile: sfpliberate/Dockerfile
+      dockerfile: homeassistant/Dockerfile
     environment:
       - HA_API_URL=http://host.docker.internal:8123/api
       - SUPERVISOR_TOKEN=${HA_TOKEN}
@@ -843,7 +843,7 @@ Add section under "Deployment Modes":
 **Stack:**
 - Frontend: Next.js standalone (ingress at port 3000)
 - Backend: FastAPI + SQLite (port 80)
-- Database: SQLite in `/config/sfpliberate/`
+- Database: SQLite in `/config/homeassistant/`
 - Bluetooth: HA Bluetooth API (not mDNS)
 
 **Architecture Differences:**
@@ -855,16 +855,16 @@ Add section under "Deployment Modes":
 **Development:**
 ```bash
 # Build add-on locally
-docker build -f sfpliberate/Dockerfile -t sfpliberate-addon .
+docker build -f homeassistant/Dockerfile -t sfpliberate-addon .
 
 # Test in dev mode
 docker-compose -f docker-compose.ha-dev.yml up
 ```
 
 **Key Files:**
-- `sfpliberate/config.yaml` - Add-on metadata
-- `sfpliberate/Dockerfile` - Multi-stage build
-- `sfpliberate/run.sh` - Startup script
+- `homeassistant/config.yaml` - Add-on metadata
+- `homeassistant/Dockerfile` - Multi-stage build
+- `homeassistant/run.sh` - Startup script
 - `backend/app/services/ha_bluetooth/` - HA Bluetooth client
 - `frontend/src/components/ha/` - HA-specific UI components
 ```
@@ -943,7 +943,7 @@ docker-compose -f docker-compose.ha-dev.yml up
 
 ### **13.3 SQLite Location**
 
-**Decision:** Store database in `/config/sfpliberate/` (not Docker volume)
+**Decision:** Store database in `/config/homeassistant/` (not Docker volume)
 
 **Rationale:**
 - Included in HA backups automatically

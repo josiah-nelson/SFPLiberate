@@ -5,7 +5,7 @@ This document describes how to create releases for the SFPLiberate Home Assistan
 ## Overview
 
 Releases are fully automated via GitHub Actions. The workflow:
-1. Updates version in `sfpliberate/config.yaml`
+1. Updates version in `homeassistant/config.yaml`
 2. Commits the version change
 3. Creates and pushes a git tag
 4. Creates a GitHub Release
@@ -103,7 +103,7 @@ Before creating a release, ensure:
 - Verifies config.yaml can be updated
 
 ### 2. Version Update Phase
-- Updates `version:` in `sfpliberate/config.yaml`
+- Updates `version:` in `homeassistant/config.yaml`
 - Commits change to `main` branch
 - Includes `[skip ci]` to avoid circular builds
 
@@ -223,8 +223,8 @@ git push origin main
 
 - [GitHub Actions Workflow](../.github/workflows/release.yml) - Release automation
 - [Build Workflow](../.github/workflows/ha-addon-build.yml) - Docker image builds
-- [Changelog](../sfpliberate/CHANGELOG.md) - Version history
-- [Add-on Documentation](../sfpliberate/DOCS.md) - User-facing docs
+- [Changelog](../homeassistant/CHANGELOG.md) - Version history
+- [Add-on Documentation](../homeassistant/DOCS.md) - User-facing docs
 
 ## Support
 
