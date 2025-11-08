@@ -86,6 +86,8 @@ const nextConfig: NextConfig = {
         optimizePackageImports: ['@radix-ui/react-icons'],
         // Next.js 16: Enable Turbopack filesystem caching for faster dev builds
         turbopackFileSystemCacheForDev: true,
+        // React 19: Enable React Compiler for automatic memoization
+        reactCompiler: true,
     },
 
     turbopack: (isStandalone || isHomeAssistant)
