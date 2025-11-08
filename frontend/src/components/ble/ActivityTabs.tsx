@@ -1,24 +1,23 @@
 "use client";
-import { useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getBleState, subscribe } from '@/lib/ble/store';
 
-// Server snapshot that returns stable initial state
-const getServerSnapshot = () => ({
-  connected: false,
-  connectionType: 'Not Connected' as const,
-  resolvedMode: 'none' as const,
-  deviceVersion: null,
-  sfpPresent: undefined,
-  batteryPct: undefined,
-  rawEepromData: null,
-  logs: [],
-});
-
 export function ActivityTabs() {
-  const st = useSyncExternalStore(subscribe, getBleState, getServerSnapshot);
+  const [state, setState] = useState(getBleState());
+  const [activeTab, setActiveTab] = useState("log");
+
+  useEffect(() => {
+    const unsubscribe = subscribe(() => {
+      setState(getBleState());
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   return (
-    <Tabs defaultValue="log" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList>
         <TabsTrigger value="log">Log</TabsTrigger>
         <TabsTrigger value="ddm">DDM</TabsTrigger>
@@ -26,9 +25,9 @@ export function ActivityTabs() {
       </TabsList>
       <TabsContent value="log">
         <div className="h-[320px] overflow-auto rounded-md border border-neutral-200 p-3 text-sm dark:border-neutral-800">
-          {st.logs.length === 0 && <div className="text-neutral-500">No logs yet.</div>}
-          {st.logs.map((l, i) => (
-            <div key={i} className="whitespace-pre-wrap">
+          {state.logs.length === 0 && <div className="text-neutral-500">No logs yet.</div>}
+          {state.logs.map((l, i) => (
+            <div key={`${l}-${i}`} className="whitespace-pre-wrap">
               {l}
             </div>
           ))}
