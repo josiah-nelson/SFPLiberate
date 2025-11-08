@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: 'Module Library',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ModulesPage() {
   const deploymentMode = getDeploymentMode();
 

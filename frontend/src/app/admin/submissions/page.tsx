@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuthContext } from '@/components/providers/AuthProvider';
-import { isAppwrite } from '@/lib/features';
+import { isAppwrite } from '@/lib/features-client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, Eye, Trash2, AlertCircle } from 'lucide-react';

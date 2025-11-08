@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 
 import { ThemeProvider } from 'next-themes';
@@ -29,6 +29,9 @@ export const metadata: Metadata = {
         apple: '/apple-touch-icon.png',
     },
     manifest: '/site.webmanifest',
+};
+
+export const viewport: Viewport = {
     themeColor: '#1E88E5',
 };
 

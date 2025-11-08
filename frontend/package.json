@@ -5,8 +5,8 @@
     "website": "https://nextjs-16-starter-shadcn.vercel.app/",
     "license": "MIT",
     "engines": {
-        "node": ">=22.21.1",
-        "npm": ">=10.9.4"
+        "node": ">=22.18.0",
+        "npm": ">=10.9.0"
     },
     "scripts": {
         "dev": "next dev --turbopack",
@@ -103,7 +103,7 @@
         "prettier-plugin-tailwindcss": "^0.7.1",
         "tailwindcss": "^4.1.16",
         "tailwindcss-animate": "^1.0.7",
-        "typescript": "^5.9.3",
+        "typescript": "5.9.3",
         "typescript-eslint": "^8.46.3"
     },
     "overrides": {

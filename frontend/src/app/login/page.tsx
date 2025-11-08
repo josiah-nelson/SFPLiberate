@@ -8,7 +8,7 @@
 
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useAuthContext } from '@/components/providers/AuthProvider';
-import { isAuthEnabled } from '@/lib/features';
+import { isAuthEnabled } from '@/lib/features-client';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 

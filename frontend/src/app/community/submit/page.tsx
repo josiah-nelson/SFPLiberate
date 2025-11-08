@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuthContext } from '@/components/providers/AuthProvider';
-import { isAppwrite } from '@/lib/features';
+import { isAppwrite } from '@/lib/features-client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Upload, AlertCircle, CheckCircle2 } from 'lucide-react';

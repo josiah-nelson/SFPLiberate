@@ -21,7 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { DeploymentMode } from '@/lib/features';
+import type { DeploymentMode } from '@/lib/features-client';
 import { writeSfpFromModuleId } from '@/lib/ble/manager';
 
 import { loadModulesAction } from './actions';
