@@ -3,9 +3,20 @@
 import asyncio
 import logging
 from typing import Dict, Optional, Callable
-from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
-from zeroconf.asyncio import AsyncZeroconf
 
+# Optional zeroconf dependency (only needed for ESPHome proxy mode)
+try:
+    from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
+    from zeroconf.asyncio import AsyncZeroconf
+    ZEROCONF_AVAILABLE = True
+except ImportError:
+    ZEROCONF_AVAILABLE = False
+    ServiceBrowser = None  # type: ignore
+    ServiceStateChange = None  # type: ignore
+    Zeroconf = None  # type: ignore
+    AsyncZeroconf = None  # type: ignore
+
+# Optional aioesphomeapi dependency (only needed for ESPHome proxy mode)
 try:
     from aioesphomeapi import APIClient, APIConnectionError
     ESPHOME_AVAILABLE = True
@@ -27,6 +38,10 @@ class ProxyManager:
         if not ESPHOME_AVAILABLE:
             raise ImportError(
                 "aioesphomeapi not installed. Install with: pip install aioesphomeapi"
+            )
+        if not ZEROCONF_AVAILABLE:
+            raise ImportError(
+                "zeroconf not installed. Install with: pip install zeroconf"
             )
 
         self.proxies: Dict[str, ESPHomeProxy] = {}
