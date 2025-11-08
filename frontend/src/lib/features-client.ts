@@ -44,13 +44,8 @@ export function isAuthEnabled(): boolean {
  */
 export function isWebBluetoothEnabled(): boolean {
   // Default true, can be disabled via env var
-  if (typeof process !== 'undefined') {
-    const envVar = isAppwrite()
-      ? process.env.NEXT_PUBLIC_ENABLE_WEB_BLUETOOTH
-      : process.env.NEXT_PUBLIC_ENABLE_WEB_BLUETOOTH;
-    return envVar !== 'false';
-  }
-  return true;
+  const envVar = process.env.NEXT_PUBLIC_ENABLE_WEB_BLUETOOTH;
+  return envVar !== 'false';
 }
 
 /**
@@ -58,13 +53,8 @@ export function isWebBluetoothEnabled(): boolean {
  */
 export function isBLEProxyEnabled(): boolean {
   // Default true, can be disabled via env var
-  if (typeof process !== 'undefined') {
-    const envVar = isAppwrite()
-      ? process.env.NEXT_PUBLIC_ENABLE_BLE_PROXY
-      : process.env.NEXT_PUBLIC_ENABLE_BLE_PROXY;
-    return envVar !== 'false';
-  }
-  return true;
+  const envVar = process.env.NEXT_PUBLIC_ENABLE_BLE_PROXY;
+  return envVar !== 'false';
 }
 
 /**
@@ -72,13 +62,8 @@ export function isBLEProxyEnabled(): boolean {
  */
 export function isCommunityFeaturesEnabled(): boolean {
   // Default false, must be explicitly enabled
-  if (typeof process !== 'undefined') {
-    const envVar = isAppwrite()
-      ? process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURES
-      : process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURES;
-    return envVar === 'true';
-  }
-  return false;
+  const envVar = process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURES;
+  return envVar === 'true';
 }
 
 /**
