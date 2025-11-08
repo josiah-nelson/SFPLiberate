@@ -101,7 +101,7 @@ fi
 print_info "Current version: $CURRENT_VERSION → New version: $VERSION"
 
 # Update version in config.yaml
-sed -i "s/^version: .*/version: \"$VERSION\"/" "$CONFIG_FILE"
+sed -i.bak "s/^version: .*/version: \"$VERSION\"/" "$CONFIG_FILE" && rm -f "${CONFIG_FILE}.bak"
 
 # Verify the change
 NEW_VERSION=$(grep '^version:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"')
