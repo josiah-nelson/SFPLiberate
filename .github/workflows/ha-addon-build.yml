@@ -6,7 +6,7 @@ on:
       - main
       - develop
     paths:
-      - 'sfpliberate/**'
+      - 'homeassistant/**'
       - 'backend/**'
       - 'frontend/**'
       - '.github/workflows/ha-addon-build.yml'
@@ -15,7 +15,7 @@ on:
       - main
       - develop
     paths:
-      - 'sfpliberate/**'
+      - 'homeassistant/**'
       - 'backend/**'
       - 'frontend/**'
   release:
@@ -37,20 +37,20 @@ jobs:
 
       - name: Validate config.yaml syntax
         run: |
-          python3 -c "import yaml; yaml.safe_load(open('sfpliberate/config.yaml'))"
+          python3 -c "import yaml; yaml.safe_load(open('homeassistant/config.yaml'))"
           echo "✓ config.yaml is valid YAML"
 
       - name: Validate build.yaml syntax
         run: |
-          python3 -c "import yaml; yaml.safe_load(open('sfpliberate/build.yaml'))"
+          python3 -c "import yaml; yaml.safe_load(open('homeassistant/build.yaml'))"
           echo "✓ build.yaml is valid YAML"
 
       - name: Check required files exist
         run: |
-          test -f sfpliberate/Dockerfile || (echo "ERROR: Dockerfile missing" && exit 1)
-          test -f sfpliberate/config.yaml || (echo "ERROR: config.yaml missing" && exit 1)
-          test -f sfpliberate/build.yaml || (echo "ERROR: build.yaml missing" && exit 1)
-          test -f sfpliberate/README.md || (echo "ERROR: README.md missing" && exit 1)
+          test -f homeassistant/Dockerfile || (echo "ERROR: Dockerfile missing" && exit 1)
+          test -f homeassistant/config.yaml || (echo "ERROR: config.yaml missing" && exit 1)
+          test -f homeassistant/build.yaml || (echo "ERROR: build.yaml missing" && exit 1)
+          test -f homeassistant/README.md || (echo "ERROR: README.md missing" && exit 1)
           echo "✓ All required files present"
 
   # Build add-on for all architectures
@@ -81,7 +81,7 @@ jobs:
       - name: Get version from config.yaml
         id: version
         run: |
-          VERSION=$(grep 'version:' sfpliberate/config.yaml | awk '{print $2}' | tr -d '"')
+          VERSION=$(grep 'version:' homeassistant/config.yaml | awk '{print $2}' | tr -d '"')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
@@ -100,18 +100,22 @@ jobs:
 
       - name: Build add-on (PR - test mode)
         if: github.event_name == 'pull_request'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          python3 sfpliberate/build.py \
+          python3 homeassistant/build.py \
             --arch ${{ matrix.arch }} \
-            --tag dev \
+            --tag "${VERSION}-pr" \
             --test
 
       - name: Build and push add-on (main/develop)
         if: github.event_name != 'pull_request' && github.event_name != 'release'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          python3 sfpliberate/build.py \
+          python3 homeassistant/build.py \
             --arch ${{ matrix.arch }} \
-            --tag dev \
+            --tag "${VERSION}-ci" \
             --registry ghcr.io/${{ github.repository_owner }} \
             --image sfpliberate-addon-{arch} \
             --push
@@ -119,7 +123,7 @@ jobs:
       - name: Build and push add-on (release)
         if: github.event_name == 'release'
         run: |
-          python3 sfpliberate/build.py \
+          python3 homeassistant/build.py \
             --arch ${{ matrix.arch }} \
             --use-config-version \
             --registry ghcr.io/${{ github.repository_owner }} \

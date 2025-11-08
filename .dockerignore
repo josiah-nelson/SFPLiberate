@@ -85,7 +85,7 @@ frontend/pnpm-debug.log*
 docker-compose*.yml
 !docker-compose.yml
 Dockerfile*
-!sfpliberate/Dockerfile
+!homeassistant/Dockerfile
 .dockerignore
 
 # Database and data (not used in build)
@@ -118,19 +118,19 @@ desktop.ini
 .circleci/
 azure-pipelines.yml
 
-# Add-on specific (already in sfpliberate/ subdirectory, no need in root context)
-# But we DO want sfpliberate/ directory to be included
+# Add-on specific (already in homeassistant/ subdirectory, no need in root context)
+# But we DO want homeassistant/ directory to be included
 # This is handled by the build context being set to repo root
 
 # Exclude anything not needed for runtime
 *.md
-!sfpliberate/*.md
+!homeassistant/*.md
 *.txt
 !requirements.txt
-!sfpliberate/*.txt
+!homeassistant/*.txt
 
 # Keep only essential files for the build
 # Build script references:
 #   - backend/ (source code)
 #   - frontend/ (source code)
-#   - sfpliberate/ (add-on config)
+#   - homeassistant/ (add-on config)

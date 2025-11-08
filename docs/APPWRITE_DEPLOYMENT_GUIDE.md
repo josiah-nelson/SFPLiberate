@@ -130,38 +130,41 @@ appwrite deploy bucket
 **Expected Output:**
 ```
 ✓ Deploying collections...
-  ✓ user_modules (created)
-  ✓ modules (created)
+  ✓ user-modules (created)
+  ✓ community-modules (created)
 ✓ Deploying buckets...
-  ✓ user_eeprom_data (created)
-  ✓ blobs (created)
-  ✓ photos (created)
+  ✓ user-eeprom (created)
+  ✓ community-blobs (created)
+  ✓ community-photos (created)
 ```
+
+> ℹ️  Alternatively run `node scripts/appwrite/provision.mjs` from the repository root to reconcile databases, collections, and
+> buckets programmatically. The script is idempotent and enforces the canonical IDs listed in `docs/APPWRITE_NATIVE_ARCHITECTURE.md`.
 
 ### Step 2: Verify in Appwrite Console
 
 **Navigate to**: https://cloud.appwrite.io/console/project-69078b02001266c5d333
 
 **Verify Database:**
-1. Go to **Databases** → **sfpliberate**
+1. Go to **Databases** → **lib-core**
 2. Verify collections:
-   - ✅ `user_modules` (Personal library)
+   - ✅ `user-modules` (Personal library)
      - Attributes: name, vendor, model, serial, sha256, eeprom_file_id, size
      - Indexes: idx_sha256 (unique), idx_created (desc)
      - Settings: Document Security = **ON**
-   - ✅ `modules` (Community)
+   - ✅ `community-modules` (Community)
      - Already configured
 
 **Verify Storage:**
 1. Go to **Storage**
 2. Verify buckets:
-   - ✅ `user_eeprom_data`
+   - ✅ `user-eeprom`
      - Max Size: 256 KB
      - Extensions: .bin
      - File Security: **ON**
      - Encryption: **ON**
-   - ✅ `blobs` (Community)
-   - ✅ `photos` (Community)
+   - ✅ `community-blobs` (Community)
+   - ✅ `community-photos` (Community)
 
 ### Step 3: Deploy Frontend to Appwrite Sites
 
@@ -195,12 +198,12 @@ appwrite deploy site
 
 **Navigate to Appwrite Console:**
 
-1. **Collections** → **user_modules** → **Settings** → **Permissions**
+1. **Collections** → **user-modules** → **Settings** → **Permissions**
    - Document Security: ✅ Enabled
    - Collection-level permissions: Leave empty
    - Note: Permissions are set per-document via code
 
-2. **Storage** → **user_eeprom_data** → **Settings** → **Permissions**
+2. **Storage** → **user-eeprom** → **Settings** → **Permissions**
    - File Security: ✅ Enabled
    - Bucket-level permissions: Leave empty
    - Note: Permissions are set per-file via code
@@ -242,14 +245,14 @@ Permission.delete(Role.user(userId))
 - ✅ Success message displayed
 - ✅ Module appears in list immediately
 - ✅ Check Appwrite Console:
-  - Document created in `user_modules`
-  - File created in `user_eeprom_data`
+  - Document created in `user-modules`
+  - File created in `user-eeprom`
   - Permissions: `read(user:USER_ID)`, `update(user:USER_ID)`, `delete(user:USER_ID)`
 
 **Verify in Console:**
 ```javascript
 // In browser DevTools
-const doc = await databases.getDocument('sfpliberate', 'user_modules', 'MODULE_ID');
+const doc = await databases.getDocument('lib-core', 'user-modules', 'MODULE_ID');
 console.log(doc.$permissions);
 // Should show: ["read("user:USER_ID")", "update("user:USER_ID")", "delete("user:USER_ID")"]
 ```
@@ -299,8 +302,8 @@ console.log(doc.$permissions);
 
 **Expected Result:**
 - ✅ Module removed from list
-- ✅ Document deleted from `user_modules`
-- ✅ File deleted from `user_eeprom_data`
+- ✅ Document deleted from `user-modules`
+- ✅ File deleted from `user-eeprom`
 
 ### Test 7: Multi-User Isolation
 
@@ -392,7 +395,7 @@ console.log(doc.$permissions);
 
 **Diagnosis:**
 1. Check browser DevTools console for errors
-2. Check Appwrite Console → Databases → user_modules
+2. Check Appwrite Console → Databases → user-modules
    - Are documents created?
    - What are the `$permissions` on the document?
 
@@ -419,7 +422,7 @@ console.log(doc.$permissions);
 3. Check storage quota
 
 **Fix:**
-- Verify bucket `user_eeprom_data` exists
+- Verify bucket `user-eeprom` exists
 - Verify file security is enabled
 - Check quota in Appwrite Console
 
@@ -432,10 +435,10 @@ console.log(doc.$permissions);
 **Diagnosis:**
 ```bash
 # Count documents
-# In Appwrite Console: Databases → user_modules → View Documents
+# In Appwrite Console: Databases → user-modules → View Documents
 
 # Count files
-# In Appwrite Console: Storage → user_eeprom_data → View Files
+# In Appwrite Console: Storage → user-eeprom → View Files
 
 # If file count > document count, orphans exist
 ```

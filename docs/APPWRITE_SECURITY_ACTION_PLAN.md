@@ -321,7 +321,7 @@ export default function SecuritySettings() {
     {
       "$id": "invite_codes",
       "$permissions": [],
-      "databaseId": "sfpliberate",
+      "databaseId": "lib-core",
       "name": "Invite Codes",
       "enabled": true,
       "documentSecurity": true,
@@ -366,7 +366,7 @@ export default async ({ req, res, log, error }) => {
   try {
     // Find invite code
     const invites = await databases.listDocuments(
-      'sfpliberate',
+      'lib-core',
       'invite_codes',
       [Query.equal('code', inviteCode), Query.equal('used', false)]
     );
@@ -387,7 +387,7 @@ export default async ({ req, res, log, error }) => {
 
     // Mark invite as used
     await databases.updateDocument(
-      'sfpliberate',
+      'lib-core',
       'invite_codes',
       invite.$id,
       {

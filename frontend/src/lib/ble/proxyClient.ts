@@ -184,7 +184,6 @@ export class BLEProxyClient {
       adapter: options.adapter || null,
     });
 
-    const self = this;
     // Return a GATT-like shape expected by higher-level logic
     return {
       name: this.device?.name,
@@ -195,17 +194,17 @@ export class BLEProxyClient {
               uuid: charUuid,
               writeValue: async (data: ArrayBufferLike | Uint8Array) => {
                 const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-                await self.writeCharacteristic(charUuid, bytes, true);
+                await this.writeCharacteristic(charUuid, bytes, true);
               },
               writeValueWithoutResponse: async (data: ArrayBufferLike | Uint8Array) => {
                 const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-                await self.writeCharacteristic(charUuid, bytes, false);
+                await this.writeCharacteristic(charUuid, bytes, false);
               },
               startNotifications: async () => {
-                await self.subscribe(charUuid);
+                await this.subscribe(charUuid);
                 return {
                   addEventListener: (_ev: 'characteristicvaluechanged', cb: (ev: { target: { value: DataView } }) => void) => {
-                    self.notificationCallbacks.set(charUuid, (_uuid, data) => {
+                    this.notificationCallbacks.set(charUuid, (_uuid, data) => {
                       const buffer = data.byteOffset === 0 && data.byteLength === data.buffer.byteLength
                         ? data.buffer
                         : data.slice().buffer;

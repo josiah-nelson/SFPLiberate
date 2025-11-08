@@ -46,13 +46,13 @@ docs/
 ### 2. Appwrite Configuration (✅ Complete)
 
 **Collections**:
-- `user_modules` - Personal module library
+- `user-modules` - Personal module library
   - Attributes: name, vendor, model, serial, sha256, eeprom_file_id, size
   - Indexes: sha256 (unique), $createdAt (desc)
   - Document security: enabled
 
 **Storage Buckets**:
-- `user_eeprom_data` - Binary EEPROM files
+- `user-eeprom` - Binary EEPROM files
   - Max size: 256 KB
   - Allowed extensions: .bin
   - Encryption: enabled
@@ -254,14 +254,14 @@ appwrite deploy collection
 appwrite deploy bucket
 
 # Verify in Appwrite Console
-# - Check user_modules collection exists
+# - Check user-modules collection exists
 # - Check indexes created (sha256, $createdAt)
-# - Check user_eeprom_data bucket exists
+# - Check user-eeprom bucket exists
 # - Verify permissions are correct
 ```
 
 **Configure Permissions in Appwrite Console**:
-1. Navigate to `user_modules` collection
+1. Navigate to `user-modules` collection
 2. Settings → Permissions
 3. Verify "Document Security" is enabled
 4. Default permissions should be empty (user-specific via code)

@@ -212,17 +212,17 @@ Users configure via HA UI (Settings → Add-ons → SFPLiberate → Configuratio
 **Development:**
 ```bash
 # Build add-on locally
-docker build -f sfpliberate/Dockerfile -t sfpliberate-addon .
+docker build -f homeassistant/Dockerfile -t sfpliberate-addon .
 
 # Test in dev mode (requires running HA instance)
 docker-compose -f docker-compose.ha-dev.yml up
 ```
 
 **Key Files:**
-- `sfpliberate/config.yaml` - Add-on metadata & schema
-- `sfpliberate/Dockerfile` - Multi-stage build
-- `sfpliberate/run.sh` - Startup script
-- `sfpliberate/rootfs/etc/services.d/` - s6-overlay services
+- `homeassistant/config.yaml` - Add-on metadata & schema
+- `homeassistant/Dockerfile` - Multi-stage build
+- `homeassistant/run.sh` - Startup script
+- `homeassistant/rootfs/etc/services.d/` - s6-overlay services
 - `backend/app/services/ha_bluetooth/` - HA Bluetooth client
 - `backend/app/api/v1/ha_bluetooth.py` - HA Bluetooth endpoints
 

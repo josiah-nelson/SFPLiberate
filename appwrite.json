@@ -4,16 +4,16 @@
   "projectName": "sfpliberate",
   "databases": [
     {
-      "$id": "sfpliberate",
+      "$id": "lib-core",
       "name": "SFPLiberate Database",
       "enabled": true
     }
   ],
   "collections": [
     {
-      "$id": "user_modules",
+      "$id": "user-modules",
       "$permissions": [],
-      "databaseId": "sfpliberate",
+      "databaseId": "lib-core",
       "name": "User Modules",
       "enabled": true,
       "documentSecurity": true,
@@ -98,9 +98,9 @@
       ]
     },
     {
-      "$id": "modules",
+      "$id": "community-modules",
       "$permissions": ["read(\"any\")"],
-      "databaseId": "sfpliberate",
+      "databaseId": "lib-core",
       "name": "Community Modules",
       "enabled": true,
       "documentSecurity": true,
@@ -243,7 +243,7 @@
     {
       "$id": "invite_codes",
       "$permissions": [],
-      "databaseId": "sfpliberate",
+      "databaseId": "lib-core",
       "name": "Invite Codes",
       "enabled": true,
       "documentSecurity": true,
@@ -326,7 +326,7 @@
   ],
   "buckets": [
     {
-      "$id": "user_eeprom_data",
+      "$id": "user-eeprom",
       "$permissions": [],
       "fileSecurity": true,
       "name": "User EEPROM Data",
@@ -338,7 +338,7 @@
       "antivirus": true
     },
     {
-      "$id": "blobs",
+      "$id": "community-blobs",
       "$permissions": ["read(\"any\")"],
       "fileSecurity": false,
       "name": "Community EEPROM Blobs",
@@ -350,7 +350,7 @@
       "antivirus": true
     },
     {
-      "$id": "photos",
+      "$id": "community-photos",
       "$permissions": ["read(\"any\")"],
       "fileSecurity": false,
       "name": "Community Module Photos",

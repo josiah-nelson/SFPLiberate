@@ -8,7 +8,7 @@ const textEncoder = new TextEncoder();
 function withTimeout<T>(promise: Promise<T>, ms: number, operation: string): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
+    new Promise<T>((resolve, reject) =>
       setTimeout(() => reject(new Error(`${operation} timed out after ${ms}ms`)), ms)
     ),
   ]);
@@ -117,7 +117,7 @@ export async function writeChunks(
     const written = Math.ceil((i + chunk.length) / chunkSize);
     if (onProgress) onProgress(written, totalChunks);
     if (delayMs > 0 && i + chunkSize < data.length) {
-      await new Promise((r) => setTimeout(r, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 }

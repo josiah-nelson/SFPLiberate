@@ -14,6 +14,7 @@
 import { getAppwriteClient, getAccount } from '../auth';
 import { parseSFPData, calculateSHA256 } from '../sfp/parser';
 import { sanitizeModuleData } from '../security/sanitization';
+import { appwriteResourceIds } from '../appwrite/config';
 import type {
   Module,
   CreateModuleData,
@@ -55,6 +56,7 @@ let RoleService: AppwriteRole | null = null;
  */
 async function getServices() {
   if (databasesService && storageService && QueryService && IDService && PermissionService && RoleService) {
+
     return {
       databases: databasesService,
       storage: storageService,
@@ -75,6 +77,7 @@ async function getServices() {
   PermissionService = appwrite.Permission;
   RoleService = appwrite.Role;
 
+
   return {
     databases: databasesService,
     storage: storageService,
@@ -91,6 +94,7 @@ async function getServices() {
 async function getCurrentUserId(): Promise<string> {
   const account = await getAccount();
   const user = await account.get();
+
   return user.$id;
 }
 
@@ -104,6 +108,7 @@ async function retryWithBackoff<T>(
 ): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+
       return await operation();
     } catch (error: any) {
       // Check if it's an AppwriteException with retryable code
@@ -148,9 +153,9 @@ function handleAppwriteError(error: any, context: string): never {
 }
 
 // Appwrite configuration
-const DATABASE_ID = 'sfpliberate';
-const USER_MODULES_COLLECTION_ID = 'user_modules';
-const USER_EEPROM_BUCKET_ID = 'user_eeprom_data';
+const DATABASE_ID = appwriteResourceIds.databaseId;
+const USER_MODULES_COLLECTION_ID = appwriteResourceIds.userModulesCollectionId;
+const USER_EEPROM_BUCKET_ID = appwriteResourceIds.userModulesBucketId;
 
 /**
  * Improved Appwrite repository with best practices

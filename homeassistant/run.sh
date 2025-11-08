@@ -19,21 +19,36 @@ export HA_WS_URL="ws://supervisor/core/websocket"
 export DATABASE_FILE="/config/sfpliberate/sfp_library.db"
 export SUBMISSIONS_DIR="/config/sfpliberate/submissions"
 export DATA_DIR="/config/sfpliberate"
+export BACKUP_DIR="/config/sfpliberate/backups"
 
 # Create directories
 bashio::log.info "Creating data directories..."
 mkdir -p /config/sfpliberate/submissions
+mkdir -p /config/sfpliberate/backups
 
 # Set deployment mode to HA addon
 export DEPLOYMENT_MODE="homeassistant"
 export ESPHOME_PROXY_MODE="false"  # We use HA Bluetooth API instead
 export HA_ADDON_MODE="true"
 
+# Configure ingress path for Next.js
+INGRESS_ENTRY=$(bashio::addon.ingress_entry)
+if [[ -n "${INGRESS_ENTRY}" && "${INGRESS_ENTRY}" != "/" ]]; then
+    export INGRESS_PATH="${INGRESS_ENTRY}"
+else
+    export INGRESS_PATH=""
+fi
+
 bashio::log.info "Starting SFPLiberate Home Assistant Add-On..."
 bashio::log.info "Log Level: ${LOG_LEVEL}"
 bashio::log.info "Auto Discovery: ${AUTO_DISCOVER}"
 bashio::log.info "Device Patterns: ${DEVICE_NAME_PATTERNS}"
 bashio::log.info "Database: ${DATABASE_FILE}"
+if [[ -n "${INGRESS_PATH}" ]]; then
+    bashio::log.info "Ingress base path: ${INGRESS_PATH}"
+else
+    bashio::log.info "Ingress base path: /"
+fi
 
 # Log BLE tracing status
 if bashio::config.true 'ble_trace_logging'; then

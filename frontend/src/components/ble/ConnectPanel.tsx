@@ -42,30 +42,51 @@ export function ConnectPanel() {
   const [esphomeEnabled, setEsphomeEnabled] = useState(false);
 
   useEffect(() => {
-    // Load module list initially (non-blocking)
-    listModules().then(setModules).catch(() => {});
-    // Run a smoke test for Web Bluetooth environment capabilities
-    detectBluetoothSupport().then((res) => {
-      const points = [
-        `Secure Context: ${res.secureContext ? 'yes' : 'no'}`,
-        `Loopback Host: ${res.loopbackHost ? 'yes' : 'no'}`,
-        `navigator.bluetooth: ${res.hasNavigatorBluetooth ? 'present' : 'missing'}`,
-        `requestDevice: ${res.hasRequestDevice ? 'present' : 'missing'}`,
-        `availability: ${res.availability === null ? 'unknown' : res.availability ? 'available' : 'unavailable'}`,
-      ].join(' · ');
-      setSupport({ summary: points, reasons: res.reasons });
-    }).catch((error) => console.error('Failed to detect Bluetooth support:', error));
+    const loadModules = async () => {
+      try {
+        const list = await listModules();
+        setModules(list);
+      } catch (error) {
+        console.error('Failed to load modules', error);
+      }
+    };
+
+    const runSupportProbe = async () => {
+      try {
+        const res = await detectBluetoothSupport();
+        const points = [
+          `Secure Context: ${res.secureContext ? 'yes' : 'no'}`,
+          `Loopback Host: ${res.loopbackHost ? 'yes' : 'no'}`,
+          `navigator.bluetooth: ${res.hasNavigatorBluetooth ? 'present' : 'missing'}`,
+          `requestDevice: ${res.hasRequestDevice ? 'present' : 'missing'}`,
+          `availability: ${res.availability === null ? 'unknown' : res.availability ? 'available' : 'unavailable'}`,
+        ].join(' · ');
+        setSupport({ summary: points, reasons: res.reasons });
+      } catch (error) {
+        console.error('Failed to detect Bluetooth support', error);
+      }
+    };
+
+    const checkEsphomeStatus = async () => {
+      try {
+        const res = await fetch('/api/v1/esphome/status');
+        const data = await res.json();
+        setEsphomeEnabled(Boolean(data.enabled));
+      } catch (error) {
+        console.error('Failed to determine ESPHome status', error);
+        setEsphomeEnabled(false);
+      }
+    };
+
+    void loadModules();
+    void runSupportProbe();
     const p = loadActiveProfile();
     if (p) {
       setSvc(p.serviceUuid);
       setWrt(p.writeCharUuid);
       setNtf(p.notifyCharUuid);
     }
-    // Check ESPHome availability
-    fetch('/api/v1/esphome/status')
-      .then((res) => res.json())
-      .then((data) => setEsphomeEnabled(data.enabled))
-      .catch(() => setEsphomeEnabled(false));
+    void checkEsphomeStatus();
   }, []);
 
   const onConnect = async () => {

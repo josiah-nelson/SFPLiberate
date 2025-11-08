@@ -99,10 +99,10 @@ export class StandaloneRepository implements ModuleRepository {
       const isDuplicate = result.status === 'duplicate';
 
       // Fetch full module data to return complete Module object
-      const module = await this.getModule(String(result.id));
+      const savedModule = await this.getModule(String(result.id));
 
       return {
-        module,
+        module: savedModule,
         isDuplicate,
         message: result.message || 'Module saved successfully',
       };
@@ -120,13 +120,13 @@ export class StandaloneRepository implements ModuleRepository {
       // Backend doesn't have a GET /modules/{id} endpoint, so we fetch all and filter
       // This is acceptable for standalone mode (typically < 100 modules)
       const modules = await this.listModules();
-      const module = modules.find((m) => m.id === id);
+      const foundModule = modules.find((m) => m.id === id);
 
-      if (!module) {
+      if (!foundModule) {
         throw new Error(`Module with ID ${id} not found`);
       }
 
-      return module;
+      return foundModule;
     } catch (error) {
       console.error(`Failed to get module ${id}:`, error);
       throw new Error(`Failed to fetch module: ${error instanceof Error ? error.message : String(error)}`);

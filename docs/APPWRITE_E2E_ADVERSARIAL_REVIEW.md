@@ -323,7 +323,7 @@ export default async ({ req, res, log, error }) => {
   // Validate invite code
   const databases = new Databases(client);
   const invites = await databases.listDocuments(
-    'sfpliberate',
+    'lib-core',
     'invite_codes',
     [Query.equal('code', inviteCode), Query.equal('used', false)]
   );
@@ -338,7 +338,7 @@ export default async ({ req, res, log, error }) => {
 
   // Mark invite as used
   await databases.updateDocument(
-    'sfpliberate',
+    'lib-core',
     'invite_codes',
     invites.documents[0].$id,
     { used: true, usedBy: user.$id, usedAt: new Date().toISOString() }
@@ -392,7 +392,7 @@ export async function signup(
   "collections": [
     {
       "$id": "invite_codes",
-      "databaseId": "sfpliberate",
+      "databaseId": "lib-core",
       "name": "Invite Codes",
       "enabled": true,
       "documentSecurity": true,
@@ -833,9 +833,9 @@ The "Community Modules" collection has `"$permissions": ["read(\"any\")"]` which
 **Current Configuration:**
 ```json
 {
-  "$id": "modules",
+  "$id": "community-modules",
   "$permissions": ["read(\"any\")"],  // ❌ Anyone can read, even without account
-  "databaseId": "sfpliberate",
+  "databaseId": "lib-core",
   "name": "Community Modules",
   "documentSecurity": true,
   // ...
@@ -854,9 +854,9 @@ If community features are meant to be public (like a public module library), thi
 
 ```json
 {
-  "$id": "modules",
+  "$id": "community-modules",
   "$permissions": ["read(\"users\")"],  // Only authenticated users
-  "databaseId": "sfpliberate",
+  "databaseId": "lib-core",
   "name": "Community Modules",
   "documentSecurity": true,
   // ...
@@ -901,7 +901,7 @@ The "Community EEPROM Blobs" bucket has `"$permissions": ["read(\"any\")"]` and 
 **Current Configuration:**
 ```json
 {
-  "$id": "blobs",
+  "$id": "community-blobs",
   "$permissions": ["read(\"any\")"],  // ❌ Public read
   "fileSecurity": false,              // ❌ File-level security DISABLED
   "name": "Community EEPROM Blobs",
@@ -920,7 +920,7 @@ The "Community EEPROM Blobs" bucket has `"$permissions": ["read(\"any\")"]` and 
 **Option 1: Enable File Security (Recommended)**
 ```json
 {
-  "$id": "blobs",
+  "$id": "community-blobs",
   "$permissions": [],  // No bucket-level permissions
   "fileSecurity": true,  // Enable file-level security
   "name": "Community EEPROM Blobs",
@@ -931,7 +931,7 @@ The "Community EEPROM Blobs" bucket has `"$permissions": ["read(\"any\")"]` and 
 **Option 2: Require Authentication**
 ```json
 {
-  "$id": "blobs",
+  "$id": "community-blobs",
   "$permissions": ["read(\"users\")"],  // Authenticated users only
   "fileSecurity": false,
   "name": "Community EEPROM Blobs",
@@ -952,7 +952,7 @@ export async function downloadCommunityBlob(blobId: string, userId?: string) {
 
 async function logBlobAccess(blobId: string, userId?: string) {
   const databases = await getDatabases();
-  await databases.createDocument('sfpliberate', 'blob_access_log', ID.unique(), {
+  await databases.createDocument('lib-core', 'blob_access_log', ID.unique(), {
     blobId,
     userId: userId || 'anonymous',
     timestamp: new Date().toISOString(),
@@ -975,7 +975,7 @@ No input sanitization on user-provided data before storage. The "Community Modul
 **Current Implementation:**
 ```typescript
 // No sanitization in repository or components
-await databases.createDocument('sfpliberate', 'modules', ID.unique(), {
+await databases.createDocument('lib-core', 'community-modules', ID.unique(), {
   name: data.name,         // ❌ Not sanitized
   comments: data.comments, // ❌ Not sanitized - XSS risk
   vendor: data.vendor,     // ❌ Not sanitized
@@ -1099,7 +1099,7 @@ Create audit log collection and middleware:
 // appwrite.json
 {
   "$id": "audit_logs",
-  "databaseId": "sfpliberate",
+  "databaseId": "lib-core",
   "name": "Audit Logs",
   "enabled": true,
   "documentSecurity": false,
@@ -1131,7 +1131,7 @@ export async function logAudit(params: {
 }) {
   try {
     const databases = await getDatabases();
-    await databases.createDocument('sfpliberate', 'audit_logs', ID.unique(), {
+    await databases.createDocument('lib-core', 'audit_logs', ID.unique(), {
       ...params,
       metadata: params.metadata ? JSON.stringify(params.metadata) : undefined,
       ipAddress: await getClientIP(),

@@ -63,7 +63,7 @@ async function fetchWithRetry(
       }
 
       // Exponential backoff
-      await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
+      await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, attempt)));
     }
   }
   throw new Error('Unreachable');

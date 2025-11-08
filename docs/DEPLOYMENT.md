@@ -370,7 +370,7 @@ make db-backup
 
 # Backup to external storage
 make db-backup && \
-  aws s3 cp backups/ s3://my-bucket/sfpliberate/ --recursive
+  aws s3 cp backups/ s3://my-bucket/homeassistant/ --recursive
 ```
 
 ### Backup Strategy

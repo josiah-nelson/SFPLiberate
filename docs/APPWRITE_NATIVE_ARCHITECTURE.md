@@ -35,7 +35,7 @@ class SFPModule(Base):
 
 ### Appwrite Collections
 
-#### Personal Module Library (`user_modules`)
+#### Personal Module Library (`user-modules`)
 **Purpose**: User's personal SFP module library (one collection per user via permissions)
 
 **Attributes**:
@@ -75,7 +75,7 @@ class SFPModule(Base):
 
 ### Appwrite Storage Buckets
 
-#### User EEPROM Data (`user_eeprom_data`)
+#### User EEPROM Data (`user-eeprom`)
 **Purpose**: Store binary EEPROM files for personal library
 
 **Configuration**:
@@ -243,67 +243,36 @@ await repository.createModule({
 });
 ```
 
-## Appwrite Configuration Files
+## Appwrite provisioning
 
-### `appwrite.json`
-```json
-{
-  "projectId": "69078b02001266c5d333",
-  "projectName": "sfpliberate",
-  "databases": [
-    {
-      "$id": "sfpliberate",
-      "name": "SFPLiberate",
-      "enabled": true
-    }
-  ],
-  "collections": [
-    {
-      "$id": "user_modules",
-      "databaseId": "sfpliberate",
-      "name": "User Modules",
-      "$permissions": [],
-      "documentSecurity": true,
-      "attributes": [
-        { "key": "name", "type": "string", "size": 255, "required": true },
-        { "key": "vendor", "type": "string", "size": 100, "required": false },
-        { "key": "model", "type": "string", "size": 100, "required": false },
-        { "key": "serial", "type": "string", "size": 100, "required": false },
-        { "key": "sha256", "type": "string", "size": 64, "required": true },
-        { "key": "eeprom_file_id", "type": "string", "size": 36, "required": true },
-        { "key": "size", "type": "integer", "required": true }
-      ],
-      "indexes": [
-        {
-          "key": "idx_sha256",
-          "type": "unique",
-          "attributes": ["sha256"]
-        },
-        {
-          "key": "idx_created",
-          "type": "key",
-          "attributes": ["$createdAt"],
-          "orders": ["DESC"]
-        }
-      ]
-    }
-  ],
-  "buckets": [
-    {
-      "$id": "user_eeprom_data",
-      "name": "User EEPROM Data",
-      "permission": "file",
-      "fileSecurity": true,
-      "enabled": true,
-      "maximumFileSize": 262144,
-      "allowedFileExtensions": ["bin"],
-      "compression": "none",
-      "encryption": true,
-      "antivirus": true
-    }
-  ]
-}
+### Canonical resource names
+
+To keep the cloud deployment predictable we standardize on the following IDs:
+
+| Resource | ID |
+| --- | --- |
+| Database | `lib-core` |
+| Personal module collection | `user-modules` |
+| Community module collection | `community-modules` |
+| Personal EEPROM bucket | `user-eeprom` |
+| Community blob bucket | `community-blobs` |
+| Community photo bucket | `community-photos` |
+
+Environment variables (for example `APPWRITE_DATABASE_ID`) can override these defaults when needed, but the maintainer deployment relies on the IDs above.
+
+### Automated setup script
+
+The repository provides `scripts/appwrite/provision.mjs` to create or reconcile these resources. The script is idempotent—running it multiple times ensures attributes, indexes, and permissions stay aligned with the architecture document.
+
+```bash
+export APPWRITE_ENDPOINT="https://cloud.appwrite.io/v1"
+export APPWRITE_PROJECT_ID="<project-id>"
+export APPWRITE_API_KEY="<scoped-api-key>"
+
+node scripts/appwrite/provision.mjs
 ```
+
+The script creates the database, collections, and buckets if they are missing, and patches attribute/index definitions when they drift. This avoids manual console steps and keeps the infrastructure reproducible between environments.
 
 ## Migration Path
 

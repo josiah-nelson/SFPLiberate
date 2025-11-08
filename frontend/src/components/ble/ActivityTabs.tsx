@@ -1,6 +1,5 @@
 "use client";
-import { useState } from 'react';
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getBleState, subscribe } from '@/lib/ble/store';
 

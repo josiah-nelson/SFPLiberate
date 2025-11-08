@@ -1,6 +1,7 @@
 # BUILD_FROM is passed by Home Assistant builder from build.yaml
 # Must be declared globally for multi-stage builds
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22
+ARG BUILD_VERSION=0.0.0
 
 # ============================================================================
 # Stage 1: Backend build
@@ -59,6 +60,7 @@ RUN npm run build
 # ============================================================================
 # Re-declare BUILD_FROM for this stage
 ARG BUILD_FROM
+ARG BUILD_VERSION
 FROM ${BUILD_FROM}
 
 # Install runtime dependencies
@@ -82,9 +84,9 @@ COPY --from=frontend-build /frontend/.next/standalone /app/frontend
 COPY --from=frontend-build /frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-build /frontend/public /app/frontend/public
 
-# Copy add-on files (build context is repo root, so prefix with sfpliberate/)
-COPY sfpliberate/run.sh /
-COPY sfpliberate/rootfs /
+# Copy add-on files (build context is repo root, so prefix with homeassistant/)
+COPY homeassistant/run.sh /
+COPY homeassistant/rootfs /
 
 # Make scripts executable
 RUN chmod +x /run.sh && \
@@ -99,12 +101,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 EXPOSE 3000
 
 # Labels
+ENV ADDON_VERSION="${BUILD_VERSION}"
+
 LABEL \
     io.hass.name="SFPLiberate" \
     io.hass.description="Bluetooth companion for Ubiquiti SFP Wizard" \
     io.hass.arch="aarch64|amd64|armhf|armv7" \
     io.hass.type="addon" \
-    io.hass.version="1.0.0" \
+    io.hass.version="${BUILD_VERSION}" \
     maintainer="Josiah Nelson <https://github.com/josiah-nelson>" \
     org.opencontainers.image.title="SFPLiberate" \
     org.opencontainers.image.description="Bluetooth companion for Ubiquiti SFP Wizard" \
@@ -113,7 +117,8 @@ LABEL \
     org.opencontainers.image.licenses="MIT" \
     org.opencontainers.image.url="https://github.com/josiah-nelson/SFPLiberate" \
     org.opencontainers.image.source="https://github.com/josiah-nelson/SFPLiberate" \
-    org.opencontainers.image.documentation="https://github.com/josiah-nelson/SFPLiberate/blob/main/docs/HOME_ASSISTANT.md"
+    org.opencontainers.image.documentation="https://github.com/josiah-nelson/SFPLiberate/blob/main/docs/HOME_ASSISTANT.md" \
+    org.opencontainers.image.version="${BUILD_VERSION}"
 
 # Start via s6-overlay (base image handles this)
 CMD ["/run.sh"]

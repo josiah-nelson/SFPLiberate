@@ -59,7 +59,7 @@ class SFPModule(Base):
     serial: Mapped[str | None]           # Parsed from EEPROM
     eeprom_data: Mapped[bytes]           # Full binary blob
     sha256: Mapped[str]                  # Unique hash (deduplication)
-    created_at: Mapped[datetime]
+    created_at: Mapped[datetime]  # Serialized as ISO 8601 string
 ```
 
 **Strengths:**
@@ -268,7 +268,7 @@ interface CommunityModule {
 
   // Metadata
   submitted_by?: string;         // User ID (optional for GitHub submissions)
-  submitted_at: datetime;
+  submitted_at: string; // ISO 8601 timestamp
   verified: boolean;             // Admin verified
   verification_notes?: string;   // Admin notes on verification
 
@@ -333,7 +333,7 @@ interface CompatibilityReport {
 
   // Metadata
   reported_by?: string;          // User ID
-  reported_at: datetime;
+  reported_at: string; // ISO 8601 timestamp
   verified: boolean;             // Admin verified report
   upvotes: number;               // Community upvotes
   downvotes: number;             // Community downvotes
@@ -386,8 +386,8 @@ interface ModuleRating {
   pros?: string[];               // Bullet points
   cons?: string[];               // Bullet points
   would_recommend: boolean;
-  created_at: datetime;
-  updated_at: datetime;
+  created_at: string; // ISO 8601 timestamp
+  updated_at: string; // ISO 8601 timestamp
   helpful_count: number;         // Upvotes on review
 }
 ```
@@ -553,7 +553,7 @@ community_modules (1) ──< (N) module_ratings
 interface WriteTelemetry {
   // Operation
   operation_id: string;          // UUID for this write attempt
-  timestamp: datetime;
+  timestamp: string; // ISO 8601 timestamp
 
   // Source module (what we're cloning)
   source_sha256?: string;        // If from community DB

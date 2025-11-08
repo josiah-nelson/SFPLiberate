@@ -70,7 +70,7 @@ export function sanitizeEmail(email: string): string {
   if (!email) return '';
 
   // Remove whitespace and convert to lowercase
-  let sanitized = email.trim().toLowerCase();
+  const sanitized = email.trim().toLowerCase();
 
   // Basic email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

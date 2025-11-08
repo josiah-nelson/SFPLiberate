@@ -7,6 +7,7 @@
 
 import { getAppwriteClient } from './auth';
 import { isAppwrite } from './features';
+import { appwriteResourceIds } from './appwrite/config';
 
 type AppwriteDatabases = import('appwrite').Databases;
 type AppwriteStorage = import('appwrite').Storage;
@@ -24,12 +25,14 @@ let IDService: AppwriteID | null = null;
  */
 async function getDatabases(): Promise<AppwriteDatabases> {
     if (databasesService) {
+
         return databasesService;
     }
 
     const { Databases } = await import('appwrite');
     const client = await getAppwriteClient();
     databasesService = new Databases(client);
+
     return databasesService;
 }
 
@@ -38,12 +41,14 @@ async function getDatabases(): Promise<AppwriteDatabases> {
  */
 async function getStorage(): Promise<AppwriteStorage> {
     if (storageService) {
+
         return storageService;
     }
 
     const { Storage } = await import('appwrite');
     const client = await getAppwriteClient();
     storageService = new Storage(client);
+
     return storageService;
 }
 
@@ -52,11 +57,13 @@ async function getStorage(): Promise<AppwriteStorage> {
  */
 async function getQuery(): Promise<AppwriteQuery> {
     if (QueryService) {
+
         return QueryService;
     }
 
     const { Query } = await import('appwrite');
     QueryService = Query;
+
     return QueryService;
 }
 
@@ -65,19 +72,21 @@ async function getQuery(): Promise<AppwriteQuery> {
  */
 async function getID(): Promise<AppwriteID> {
     if (IDService) {
+
         return IDService;
     }
 
     const { ID } = await import('appwrite');
     IDService = ID;
+
     return IDService;
 }
 
 // Database and collection IDs (configured in Appwrite Console)
-const DATABASE_ID = 'sfpliberate';
-const MODULES_COLLECTION_ID = 'modules';
-const BLOBS_BUCKET_ID = 'blobs';
-const PHOTOS_BUCKET_ID = 'photos';
+const DATABASE_ID = appwriteResourceIds.databaseId;
+const MODULES_COLLECTION_ID = appwriteResourceIds.communityModulesCollectionId;
+const BLOBS_BUCKET_ID = appwriteResourceIds.communityBlobBucketId;
+const PHOTOS_BUCKET_ID = appwriteResourceIds.communityPhotoBucketId;
 
 /**
  * Community module metadata
@@ -136,6 +145,7 @@ export async function listCommunityModules(): Promise<CommunityModule[]> {
             Query.limit(100),
         ]);
 
+
         return response.documents as unknown as CommunityModule[];
     } catch (error) {
         console.error('Failed to list community modules:', error);
@@ -154,6 +164,7 @@ export async function getCommunityModule(moduleId: string): Promise<CommunityMod
     try {
         const databases = await getDatabases();
         const doc = await databases.getDocument(DATABASE_ID, MODULES_COLLECTION_ID, moduleId);
+
         return doc as unknown as CommunityModule;
     } catch (error) {
         console.error('Failed to get community module:', error);
@@ -172,6 +183,7 @@ export async function downloadModuleBlob(blobId: string): Promise<ArrayBuffer> {
     try {
         const storage = await getStorage();
         const result = await storage.getFileDownload(BLOBS_BUCKET_ID, blobId);
+
         return result as unknown as ArrayBuffer;
     } catch (error) {
         console.error('Failed to download module blob:', error);
@@ -190,6 +202,7 @@ export async function getModulePhotoUrl(photoId: string): Promise<string> {
     try {
         const storage = await getStorage();
         const result = storage.getFileView(PHOTOS_BUCKET_ID, photoId);
+
         return result.toString();
     } catch (error) {
         console.error('Failed to get module photo URL:', error);
@@ -279,6 +292,7 @@ export async function submitCommunityModule(submission: ModuleSubmission): Promi
             downloads: 0,
         });
 
+
         return moduleDoc as unknown as CommunityModule;
     } catch (error) {
         console.error('Failed to submit module:', error);
@@ -299,10 +313,10 @@ export async function incrementModuleDownloads(moduleId: string): Promise<void> 
 
     try {
         const databases = await getDatabases();
-        const module = await databases.getDocument(DATABASE_ID, MODULES_COLLECTION_ID, moduleId);
+        const moduleDoc = await databases.getDocument(DATABASE_ID, MODULES_COLLECTION_ID, moduleId);
 
         await databases.updateDocument(DATABASE_ID, MODULES_COLLECTION_ID, moduleId, {
-            downloads: ((module.downloads as number) || 0) + 1,
+            downloads: ((moduleDoc.downloads as number) || 0) + 1,
         });
     } catch (error) {
         console.error('Failed to increment download count:', error);
@@ -342,16 +356,16 @@ export async function deleteModule(moduleId: string): Promise<void> {
         const storage = await getStorage();
 
         // Get module to find associated files
-        const module = await databases.getDocument(DATABASE_ID, MODULES_COLLECTION_ID, moduleId);
+        const moduleDoc = await databases.getDocument(DATABASE_ID, MODULES_COLLECTION_ID, moduleId);
 
         // Delete blob
-        if (module.blobId) {
-            await storage.deleteFile(BLOBS_BUCKET_ID, module.blobId as string);
+        if (moduleDoc.blobId) {
+            await storage.deleteFile(BLOBS_BUCKET_ID, moduleDoc.blobId as string);
         }
 
         // Delete photo if exists
-        if (module.photoId) {
-            await storage.deleteFile(PHOTOS_BUCKET_ID, module.photoId as string);
+        if (moduleDoc.photoId) {
+            await storage.deleteFile(PHOTOS_BUCKET_ID, moduleDoc.photoId as string);
         }
 
         // Delete document

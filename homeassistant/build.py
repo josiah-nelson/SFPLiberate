@@ -7,12 +7,12 @@ multi-architecture builds, caching, and tagging.
 """
 
 import argparse
-import json
 import logging
+import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 # Configure logging
 logging.basicConfig(
@@ -99,7 +99,7 @@ def build_image(config: BuildConfig, push: bool = False, test: bool = False) -> 
         "--platform",
         config.platform,
         "--file",
-        "sfpliberate/Dockerfile",
+        "homeassistant/Dockerfile",
         "--tag",
         config.full_image_tag,
     ]
@@ -142,7 +142,7 @@ def get_addon_version() -> str:
     """Get version from config.yaml using regex (no yaml dependency)."""
     import re
 
-    config_path = Path("sfpliberate/config.yaml")
+    config_path = Path("homeassistant/config.yaml")
     if not config_path.exists():
         logger.error("config.yaml not found!")
         sys.exit(1)
@@ -172,8 +172,7 @@ def main():
     )
     parser.add_argument(
         "--tag",
-        default="dev",
-        help="Docker image tag (default: dev)",
+        help="Docker image tag (defaults to version from config.yaml)",
     )
     parser.add_argument(
         "--registry",
@@ -217,7 +216,17 @@ def main():
         logger.setLevel(logging.DEBUG)
 
     # Get version
-    tag = get_addon_version() if args.use_config_version else args.tag
+    if args.use_config_version:
+        tag = get_addon_version()
+    else:
+        tag = args.tag or get_addon_version()
+
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", tag):
+        logger.error(
+            "Invalid tag '%s'. Expected semantic version (X.Y.Z or pre-release like 1.2.3-beta)",
+            tag,
+        )
+        sys.exit(1)
 
     # Determine architectures to build
     architectures = (
