@@ -187,7 +187,7 @@ git push origin v0.2.0
 # 4. Create release via GitHub UI or CLI
 gh release create v0.2.0 \
   --title "Release 0.2.0" \
-  --notes "Release notes here"
+  --generate-notes
 
 # 5. Wait for ha-addon-build workflow to run
 ```
