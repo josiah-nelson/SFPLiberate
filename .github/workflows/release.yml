@@ -168,73 +168,77 @@ jobs:
         run: |
           VERSION="${{ needs.validate.outputs.version }}"
           TAG="${{ needs.validate.outputs.tag }}"
+          REPO="${{ github.repository }}"
 
           # Get previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
 
           if [ -z "$PREV_TAG" ]; then
-            echo "ℹ️  No previous tag found - this is the first release"
-            NOTES="## SFPLiberate v$VERSION
+            echo "No previous tag found - this is the first release"
 
-This is the first release of the SFPLiberate Home Assistant add-on.
+            # Write first release notes using heredoc
+            cat > release-notes.md <<-EOF
+          ## SFPLiberate v${VERSION}
 
-### Installation
+          This is the first release of the SFPLiberate Home Assistant add-on.
 
-1. Add this repository to Home Assistant:
-   \`\`\`
-   https://github.com/${{ github.repository }}
-   \`\`\`
+          ### Installation
 
-2. Install the **SFPLiberate** add-on from the add-on store
+          1. Add this repository to Home Assistant:
+             \`\`\`
+             https://github.com/${REPO}
+             \`\`\`
 
-3. Configure your settings and start the add-on
+          2. Install the **SFPLiberate** add-on from the add-on store
 
-### Features
+          3. Configure your settings and start the add-on
 
-- Web Bluetooth API support for direct device connection
-- ESPHome proxy fallback for iOS/Safari users
-- Local SQLite database for module storage
-- Automatic SFP Wizard device discovery
-- Module library management (save, clone, delete)
+          ### Features
 
-### Documentation
+          - Web Bluetooth API support for direct device connection
+          - ESPHome proxy fallback for iOS/Safari users
+          - Local SQLite database for module storage
+          - Automatic SFP Wizard device discovery
+          - Module library management (save, clone, delete)
 
-- [Add-on Documentation](https://github.com/${{ github.repository }}/blob/main/sfpliberate/DOCS.md)
-- [Main README](https://github.com/${{ github.repository }}/blob/main/README.md)
-- [Changelog](https://github.com/${{ github.repository }}/blob/main/sfpliberate/CHANGELOG.md)
-"
+          ### Documentation
+
+          - [Add-on Documentation](https://github.com/${REPO}/blob/main/sfpliberate/DOCS.md)
+          - [Main README](https://github.com/${REPO}/blob/main/README.md)
+          - [Changelog](https://github.com/${REPO}/blob/main/sfpliberate/CHANGELOG.md)
+          EOF
           else
-            echo "ℹ️  Generating changes since $PREV_TAG"
+            echo "Generating changes since $PREV_TAG"
 
             # Get commit messages since previous tag
-            COMMITS=$(git log --pretty=format:"- %s (%h)" "$PREV_TAG..$TAG" 2>/dev/null || echo "")
+            COMMITS=$(git log --pretty=format:"- %s (%h)" "$PREV_TAG..$TAG" 2>/dev/null || echo "No commits found")
 
-            NOTES="## SFPLiberate v$VERSION
+            # Write incremental release notes using heredoc
+            cat > release-notes.md <<-EOF
+          ## SFPLiberate v${VERSION}
 
-### Changes Since $PREV_TAG
+          ### Changes Since $PREV_TAG
 
-$COMMITS
+          ${COMMITS}
 
-### Installation
+          ### Installation
 
-1. Add this repository to Home Assistant:
-   \`\`\`
-   https://github.com/${{ github.repository }}
-   \`\`\`
+          1. Add this repository to Home Assistant:
+             \`\`\`
+             https://github.com/${REPO}
+             \`\`\`
 
-2. Go to Add-ons → Add-on Store → SFPLiberate
-3. Click Install (or Update if already installed)
+          2. Go to Add-ons -> Add-on Store -> SFPLiberate
+          3. Click Install (or Update if already installed)
 
-### Documentation
+          ### Documentation
 
-- [Add-on Documentation](https://github.com/${{ github.repository }}/blob/main/sfpliberate/DOCS.md)
-- [Changelog](https://github.com/${{ github.repository }}/blob/main/sfpliberate/CHANGELOG.md)
-"
+          - [Add-on Documentation](https://github.com/${REPO}/blob/main/sfpliberate/DOCS.md)
+          - [Changelog](https://github.com/${REPO}/blob/main/sfpliberate/CHANGELOG.md)
+          EOF
           fi
 
-          # Write notes to file for use in release creation
-          echo "$NOTES" > release-notes.md
-          echo "✅ Generated release notes"
+          echo "Generated release notes"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
