@@ -1,7 +1,8 @@
 """WebSocket message schemas for ESPHome BLE proxy communication."""
 
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -31,9 +32,9 @@ class BLEConnectMessage(BaseModel):
 
     type: Literal["connect"] = Field(default="connect")
     mac_address: str = Field(..., description="Device MAC address")
-    service_uuid: Optional[str] = Field(None, description="Optional service UUID filter")
-    notify_char_uuid: Optional[str] = Field(None, description="Notify characteristic UUID")
-    write_char_uuid: Optional[str] = Field(None, description="Write characteristic UUID")
+    service_uuid: str | None = Field(None, description="Optional service UUID filter")
+    notify_char_uuid: str | None = Field(None, description="Notify characteristic UUID")
+    write_char_uuid: str | None = Field(None, description="Write characteristic UUID")
 
 
 class BLEDisconnectMessage(BaseModel):
@@ -72,7 +73,7 @@ class BLEConnectedMessage(BaseModel):
     """Notification that connection succeeded."""
 
     type: Literal["connected"] = Field(default="connected")
-    device_name: Optional[str] = Field(None, description="Device name")
+    device_name: str | None = Field(None, description="Device name")
     device_address: str = Field(..., description="Device MAC address")
     service_uuid: str = Field(..., description="Primary service UUID")
     notify_char_uuid: str = Field(..., description="Notify characteristic UUID")
@@ -100,7 +101,7 @@ class BLEStatusMessage(BaseModel):
 
     type: Literal["status"] = Field(default="status")
     connected: bool = Field(..., description="Connection status")
-    device_name: Optional[str] = Field(None, description="Connected device name")
+    device_name: str | None = Field(None, description="Connected device name")
     message: str = Field(..., description="Status message")
 
 
@@ -109,4 +110,4 @@ class BLEErrorMessage(BaseModel):
 
     type: Literal["error"] = Field(default="error")
     error: str = Field(..., description="Error description")
-    details: Optional[dict] = Field(None, description="Additional error details")
+    details: dict | None = Field(None, description="Additional error details")

@@ -2,8 +2,9 @@
 
 import asyncio
 import logging
-from typing import Optional, Callable, Dict
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Optional
 
 try:
     from aioesphomeapi import APIClient
@@ -20,7 +21,7 @@ class ActiveConnection:
     """Represents an active BLE device connection."""
 
     mac_address: str
-    device_name: Optional[str]
+    device_name: str | None
     proxy_name: str
     client: "APIClient"
     service_uuid: str
@@ -28,7 +29,7 @@ class ActiveConnection:
     write_char_uuid: str
     notify_handle: int  # ESPHome uses handles, not UUIDs
     write_handle: int
-    notification_callback: Optional[Callable] = None
+    notification_callback: Callable | None = None
 
 
 class ConnectionManager:
@@ -60,7 +61,7 @@ class ConnectionManager:
                 "aioesphomeapi not installed. Install with: pip install aioesphomeapi"
             )
 
-        self.connections: Dict[str, ActiveConnection] = {}  # Key: client_id (unique per WebSocket)
+        self.connections: dict[str, ActiveConnection] = {}  # Key: client_id (unique per WebSocket)
         self._initialized = True
 
     async def connect_device(
@@ -72,8 +73,8 @@ class ConnectionManager:
         service_uuid: str,
         notify_char_uuid: str,
         write_char_uuid: str,
-        device_name: Optional[str] = None,
-        notification_callback: Optional[Callable] = None,
+        device_name: str | None = None,
+        notification_callback: Callable | None = None,
     ) -> None:
         """
         Establish persistent connection to a BLE device.
@@ -99,7 +100,12 @@ class ConnectionManager:
         if client_id in self.connections:
             await self.disconnect_device(client_id)
 
-        logger.info(f"Connecting to device {mac_address} via proxy {proxy_name} for client {client_id}")
+        logger.info(
+            "esphome_device_connect",
+            mac=mac_address,
+            proxy=proxy_name,
+            client_id=client_id,
+        )
 
         try:
             # Connect to device
@@ -147,12 +153,14 @@ class ConnectionManager:
 
             logger.info(f"Device connection established for client {client_id}")
 
-        except asyncio.TimeoutError:
+        except TimeoutError as exc:
             logger.error(f"Timeout connecting to device {mac_address}")
-            raise RuntimeError("Connection timeout - device may be out of range or busy")
+            raise RuntimeError(
+                "Connection timeout - device may be out of range or busy"
+            ) from exc
         except Exception as e:
             logger.error(f"Failed to connect to device {mac_address}: {e}", exc_info=True)
-            raise RuntimeError(f"Connection failed: {e}")
+            raise RuntimeError(f"Connection failed: {e}") from e
 
     def _find_characteristic_handles(
         self, services, notify_uuid: str, write_uuid: str
@@ -184,11 +192,19 @@ class ConnectionManager:
 
                 if char_uuid_normalized == notify_uuid_normalized:
                     notify_handle = char.handle
-                    logger.debug(f"Found notify characteristic: {char.uuid} -> handle {char.handle}")
+                    logger.debug(
+                        "notify_characteristic_found",
+                        uuid=str(char.uuid),
+                        handle=char.handle,
+                    )
 
                 if char_uuid_normalized == write_uuid_normalized:
                     write_handle = char.handle
-                    logger.debug(f"Found write characteristic: {char.uuid} -> handle {char.handle}")
+                    logger.debug(
+                        "write_characteristic_found",
+                        uuid=str(char.uuid),
+                        handle=char.handle,
+                    )
 
         if notify_handle is None:
             raise ValueError(f"Notify characteristic {notify_uuid} not found in services")
@@ -221,7 +237,11 @@ class ConnectionManager:
                         handle=connection.notify_handle,
                         enable=False,
                     )
-                    logger.debug(f"Unsubscribed from notifications (handle={connection.notify_handle})")
+                    logger.debug(
+                        "esphome_unsubscribed",
+                        handle=connection.notify_handle,
+                        mac=connection.mac_address,
+                    )
                 except Exception as e:
                     logger.warning(f"Error unsubscribing from notifications: {e}")
 
@@ -268,8 +288,10 @@ class ConnectionManager:
             )
 
         logger.debug(
-            f"Writing {len(data)} bytes to characteristic {characteristic_uuid} "
-            f"on device {connection.mac_address}"
+            "esphome_write_start",
+            bytes=len(data),
+            characteristic=characteristic_uuid,
+            mac=connection.mac_address,
         )
 
         try:
@@ -281,11 +303,15 @@ class ConnectionManager:
                 response=with_response,
             )
 
-            logger.debug(f"Write completed to {characteristic_uuid} (handle={connection.write_handle})")
+            logger.debug(
+                "esphome_write_complete",
+                characteristic=characteristic_uuid,
+                handle=connection.write_handle,
+            )
 
         except Exception as e:
             logger.error(f"Write failed: {e}", exc_info=True)
-            raise RuntimeError(f"Write failed: {e}")
+            raise RuntimeError(f"Write failed: {e}") from e
 
     async def _subscribe_notifications(
         self,
@@ -305,14 +331,22 @@ class ConnectionManager:
             notify_char_uuid: Characteristic UUID to send to the frontend
             callback: Function to call on notifications
         """
-        logger.info(f"Subscribing to notifications from handle {notify_handle} on {mac_address}")
+        logger.info(
+            "esphome_subscribe",
+            handle=notify_handle,
+            mac=mac_address,
+        )
 
         try:
             # ESPHome notification callback
             def on_notification(address: str, handle: int, data: bytes):
                 """Handle incoming notification."""
                 if address.upper() == mac_address.upper() and handle == notify_handle:
-                    logger.debug(f"Notification received: {len(data)} bytes from handle {handle}")
+                    logger.debug(
+                        "esphome_notification",
+                        bytes=len(data),
+                        handle=handle,
+                    )
                     try:
                         # Convert list[int] to bytes if needed
                         if isinstance(data, list):
@@ -332,13 +366,13 @@ class ConnectionManager:
                 enable=True,
             )
 
-            logger.info(f"Subscribed to notifications from handle {notify_handle}")
+            logger.info("esphome_subscribe_complete", handle=notify_handle)
 
         except Exception as e:
             logger.error(f"Failed to subscribe to notifications: {e}", exc_info=True)
-            raise RuntimeError(f"Subscription failed: {e}")
+            raise RuntimeError(f"Subscription failed: {e}") from e
 
-    def get_connection(self, client_id: str) -> Optional[ActiveConnection]:
+    def get_connection(self, client_id: str) -> ActiveConnection | None:
         """Get active connection for a client."""
         return self.connections.get(client_id)
 

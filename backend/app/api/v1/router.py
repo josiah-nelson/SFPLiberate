@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import health, modules, submissions, esphome_status
+from app.api.v1 import esphome_status, health, modules, submissions
 from app.config import get_settings
 
 api_router = APIRouter()
@@ -29,7 +29,11 @@ elif settings.esphome_proxy_mode:
     # Always include ESPHome status endpoint (reports enabled/disabled)
     api_router.include_router(esphome_status.router, tags=["esphome"])
     api_router.include_router(esphome.router, tags=["esphome-proxy"])
-    api_router.include_router(esphome_websocket.router, prefix="/esphome", tags=["esphome-websocket"])
+    api_router.include_router(
+        esphome_websocket.router,
+        prefix="/esphome",
+        tags=["esphome-websocket"],
+    )
 else:
     # Standalone mode without proxy - still include status endpoint
     api_router.include_router(esphome_status.router, tags=["esphome"])

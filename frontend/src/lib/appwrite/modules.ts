@@ -18,7 +18,7 @@ type UserModuleDocument = Models.Document & {
 };
 
 export async function listUserModules(): Promise<ModuleRow[]> {
-  const client = createServerAppwriteClient();
+  const client = await createServerAppwriteClient();
   const databases = new Databases(client);
 
   const response = await databases.listDocuments<UserModuleDocument>(

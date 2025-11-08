@@ -3,8 +3,10 @@
 import asyncio
 import json
 import logging
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+
 from app.services.esphome import ESPHomeProxyService
 from app.services.esphome.schemas import (
     DeviceConnectionRequest,
@@ -36,7 +38,7 @@ async def get_status():
         )
     except Exception as e:
         logger.error(f"Error getting ESPHome status: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/devices")
@@ -105,12 +107,12 @@ async def connect_device(request: DeviceConnectionRequest):
 
     except ValueError as e:
         logger.warning(f"Device connection failed (client error): {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
     except RuntimeError as e:
         logger.error(f"Device connection failed (proxy error): {e}")
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
     except Exception as e:
         logger.error(f"Unexpected error connecting to device: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Connection failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Connection failed: {e}") from e

@@ -1,15 +1,15 @@
 """Home Assistant Bluetooth API client for SFPLiberate add-on."""
 
 import asyncio
-import logging
-from typing import List, Optional, Dict, Any, Tuple
-import aiohttp
 import json
+import logging
 import os
-import time
+from typing import Any
 
-from .schemas import HABluetoothDevice, HADeviceConnectionResponse
+import aiohttp
+
 from .ble_tracer import get_tracer
+from .schemas import HABluetoothDevice, HADeviceConnectionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,10 @@ class HomeAssistantBluetoothClient:
 
     def __init__(
         self,
-        ha_api_url: Optional[str] = None,
-        ha_ws_url: Optional[str] = None,
-        supervisor_token: Optional[str] = None,
-        device_patterns: Optional[List[str]] = None,
+        ha_api_url: str | None = None,
+        ha_ws_url: str | None = None,
+        supervisor_token: str | None = None,
+        device_patterns: list[str] | None = None,
     ):
         """
         Initialize HA Bluetooth client.
@@ -51,10 +51,10 @@ class HomeAssistantBluetoothClient:
 
         self.device_patterns = [p.lower() for p in (device_patterns or default_patterns)]
 
-        self._session: Optional[aiohttp.ClientSession] = None
-        self._ws: Optional[aiohttp.ClientWebSocketResponse] = None
-        self._discovered_devices: Dict[str, HABluetoothDevice] = {}
-        self._ws_task: Optional[asyncio.Task] = None
+        self._session: aiohttp.ClientSession | None = None
+        self._ws: aiohttp.ClientWebSocketResponse | None = None
+        self._discovered_devices: dict[str, HABluetoothDevice] = {}
+        self._ws_task: asyncio.Task | None = None
         self._connected = False
 
         logger.info(
@@ -117,14 +117,15 @@ class HomeAssistantBluetoothClient:
         self._connected = False
         logger.info("HA Bluetooth client stopped")
 
-    async def get_bluetooth_devices(self) -> List[HABluetoothDevice]:
+    async def get_bluetooth_devices(self) -> list[HABluetoothDevice]:
         """
         Get all Bluetooth devices from HA that match configured patterns.
 
         Returns:
             List of discovered devices matching configured patterns
         """
-        # Return cached devices, which are populated at startup and kept up-to-date by the WebSocket listener.
+        # Return cached devices populated at startup and refreshed via the
+        # WebSocket listener. This avoids hitting the HA API on every request.
         return list(self._discovered_devices.values())
 
     async def connect_to_device(self, mac_address: str) -> HADeviceConnectionResponse:
@@ -252,7 +253,7 @@ class HomeAssistantBluetoothClient:
             logger.error(f"Error discovering devices: {e}", exc_info=True)
             tracer.log_error("Device Discovery", str(e))
 
-    def _is_bluetooth_entity(self, entity_id: str, attrs: Dict[str, Any]) -> bool:
+    def _is_bluetooth_entity(self, entity_id: str, attrs: dict[str, Any]) -> bool:
         """Check if entity is Bluetooth-related."""
         # Check entity domain
         if entity_id.startswith(("device_tracker.", "sensor.")):
@@ -267,7 +268,7 @@ class HomeAssistantBluetoothClient:
 
         return False
 
-    def _extract_mac(self, attrs: Dict[str, Any], entity_id: str) -> Optional[str]:
+    def _extract_mac(self, attrs: dict[str, Any], entity_id: str) -> str | None:
         """Extract MAC address from entity attributes."""
         # Try common attribute names
         for key in ["address", "mac", "mac_address", "id"]:
@@ -332,10 +333,13 @@ class HomeAssistantBluetoothClient:
         except Exception as e:
             logger.error(f"WebSocket error: {e}", exc_info=True)
 
-    async def _handle_ws_message(self, data: Dict[str, Any]) -> None:
+    async def _handle_ws_message(self, data: dict[str, Any]) -> None:
         """Process WebSocket message for Bluetooth device updates."""
         # Check for state_changed event
-        if data.get("type") == "event" and data.get("event", {}).get("event_type") == "state_changed":
+        if (
+            data.get("type") == "event"
+            and data.get("event", {}).get("event_type") == "state_changed"
+        ):
             event_data = data.get("event", {}).get("data", {})
             entity_id = event_data.get("entity_id", "")
             new_state = event_data.get("new_state", {})

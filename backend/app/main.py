@@ -2,14 +2,14 @@
 
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import structlog
 
+from app.api.v1.router import api_router
 from app.config import get_settings
 from app.core.database import init_db
 from app.core.logging import setup_logging
-from app.api.v1.router import api_router
 
 settings = get_settings()
 
@@ -24,7 +24,11 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging(settings.log_level, settings.log_json)
     logger = structlog.get_logger()
-    logger.info("application_startup", version=settings.version, ha_addon_mode=settings.ha_addon_mode)
+    logger.info(
+        "application_startup",
+        version=settings.version,
+        ha_addon_mode=settings.ha_addon_mode,
+    )
 
     # Initialize BLE tracer if enabled
     if settings.ble_trace_logging:
@@ -42,8 +46,8 @@ async def lifespan(app: FastAPI):
     if settings.ha_addon_mode:
         # Home Assistant Add-On mode: Use HA Bluetooth API
         try:
-            from app.services.ha_bluetooth import HomeAssistantBluetoothClient
             from app.api.v1.ha_bluetooth import set_ha_bluetooth_client
+            from app.services.ha_bluetooth import HomeAssistantBluetoothClient
 
             bluetooth_service = HomeAssistantBluetoothClient(
                 ha_api_url=settings.ha_api_url,

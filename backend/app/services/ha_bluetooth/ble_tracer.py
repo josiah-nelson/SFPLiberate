@@ -5,10 +5,10 @@ Provides comprehensive BLE traffic logging for debugging and protocol analysis.
 Uses standard Python logging system with structured messages.
 """
 
-import logging
 import json
+import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class BLETracer:
@@ -44,7 +44,7 @@ class BLETracer:
             self._logger.info(f"BLE TRACE SESSION STARTED: {self._session_start.isoformat()}")
             self._logger.info("=" * 80)
 
-    def log_session_info(self, info: Dict[str, Any]) -> None:
+    def log_session_info(self, info: dict[str, Any]) -> None:
         """Log session configuration and environment info."""
         if not self.enabled:
             return
@@ -53,7 +53,7 @@ class BLETracer:
         for key, value in info.items():
             self._logger.info(f"  {key}: {value}")
 
-    def log_device_scan_start(self, patterns: List[str], filters: Dict[str, Any]) -> None:
+    def log_device_scan_start(self, patterns: list[str], filters: dict[str, Any]) -> None:
         """Log start of device scanning."""
         if not self.enabled:
             return
@@ -68,7 +68,7 @@ class BLETracer:
         mac: str,
         name: str,
         rssi: int,
-        advertisement_data: Optional[Dict[str, Any]] = None,
+        advertisement_data: dict[str, Any] | None = None,
     ) -> None:
         """Log device discovery with advertisement data."""
         if not self.enabled:
@@ -148,7 +148,7 @@ class BLETracer:
         conn_id: int,
         service_uuid: str,
         char_uuid: str,
-        properties: List[str],
+        properties: list[str],
     ) -> None:
         """Log GATT characteristic discovery."""
         if not self.enabled:
@@ -194,7 +194,7 @@ class BLETracer:
         char_uuid: str,
         value: bytes,
         success: bool = True,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Log characteristic read operation."""
         if not self.enabled:
@@ -226,7 +226,7 @@ class BLETracer:
         value: bytes,
         with_response: bool = True,
         success: bool = True,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Log characteristic write operation."""
         if not self.enabled:
@@ -279,7 +279,7 @@ class BLETracer:
         conn_id: int,
         char_uuid: str,
         success: bool = True,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Log notification subscription."""
         if not self.enabled:
@@ -293,7 +293,7 @@ class BLETracer:
             self._logger.error(f"  Characteristic: {char_uuid}")
             self._logger.error(f"  Error: {error}")
 
-    def log_disconnection(self, conn_id: int, reason: Optional[str] = None) -> None:
+    def log_disconnection(self, conn_id: int, reason: str | None = None) -> None:
         """Log device disconnection."""
         if not self.enabled:
             return
@@ -302,7 +302,7 @@ class BLETracer:
         if reason:
             self._logger.info(f"  Reason: {reason}")
 
-    def log_error(self, context: str, error: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def log_error(self, context: str, error: str, details: dict[str, Any] | None = None) -> None:
         """Log general error with context."""
         if not self.enabled:
             return
@@ -325,7 +325,7 @@ class BLETracer:
 
 
 # Global tracer instance
-_tracer: Optional[BLETracer] = None
+_tracer: BLETracer | None = None
 
 
 def init_tracer(enabled: bool = False) -> BLETracer:

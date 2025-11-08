@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Dict, Optional, Callable
+from collections.abc import Callable
 
 # Optional zeroconf dependency (only needed for ESPHome proxy mode)
 try:
@@ -44,11 +44,11 @@ class ProxyManager:
                 "zeroconf not installed. Install with: pip install zeroconf"
             )
 
-        self.proxies: Dict[str, ESPHomeProxy] = {}
-        self.clients: Dict[str, APIClient] = {}
-        self.zeroconf: Optional[AsyncZeroconf] = None
-        self._browser: Optional[ServiceBrowser] = None
-        self._advertisement_callback: Optional[Callable] = None
+        self.proxies: dict[str, ESPHomeProxy] = {}
+        self.clients: dict[str, APIClient] = {}
+        self.zeroconf: AsyncZeroconf | None = None
+        self._browser: ServiceBrowser | None = None
+        self._advertisement_callback: Callable | None = None
 
     def _on_service_state_change(
         self, zeroconf: Zeroconf, service_type: str, name: str, state_change: ServiceStateChange
@@ -158,7 +158,7 @@ class ProxyManager:
             self.clients[name] = client
             proxy.connected = True
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"Timeout connecting to proxy {name}")
             proxy.connected = False
         except APIConnectionError as e:
@@ -202,7 +202,7 @@ class ProxyManager:
 
         logger.info("All proxies disconnected")
 
-    def get_client(self, proxy_name: str) -> Optional[APIClient]:
+    def get_client(self, proxy_name: str) -> APIClient | None:
         """
         Get API client for a specific proxy.
 
@@ -214,7 +214,7 @@ class ProxyManager:
         """
         return self.clients.get(proxy_name)
 
-    def get_connected_proxies(self) -> Dict[str, ESPHomeProxy]:
+    def get_connected_proxies(self) -> dict[str, ESPHomeProxy]:
         """Get dictionary of all currently connected proxies."""
         return {
             name: proxy

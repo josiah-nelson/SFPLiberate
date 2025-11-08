@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import String, LargeBinary, Index
+from sqlalchemy import Index, LargeBinary, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 

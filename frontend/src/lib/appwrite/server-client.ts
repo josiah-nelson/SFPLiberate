@@ -4,7 +4,7 @@ import { Client } from 'node-appwrite';
 import { getAppwriteEndpoint, getAppwriteProjectId } from '../features';
 import { getAppwriteSessionCookieName } from './config';
 
-export function createServerAppwriteClient(): Client {
+export async function createServerAppwriteClient(): Promise<Client> {
   const endpoint = getAppwriteEndpoint();
   const projectId = getAppwriteProjectId();
 
@@ -12,7 +12,7 @@ export function createServerAppwriteClient(): Client {
     throw new Error('Appwrite endpoint or project ID is not configured.');
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionCookieName = getAppwriteSessionCookieName(projectId);
   const sessionCookie = cookieStore.get(sessionCookieName);
 

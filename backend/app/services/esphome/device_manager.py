@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+
 from .schemas import DiscoveredDevice
 
 logger = logging.getLogger(__name__)
@@ -18,12 +18,12 @@ class DeviceManager:
         Args:
             device_expiry_seconds: Time after which a device is considered stale
         """
-        self.devices: Dict[str, DiscoveredDevice] = {}
-        self.rssi_by_proxy: Dict[str, Dict[str, int]] = {}  # {mac: {proxy_name: rssi}}
+        self.devices: dict[str, DiscoveredDevice] = {}
+        self.rssi_by_proxy: dict[str, dict[str, int]] = {}  # {mac: {proxy_name: rssi}}
         self.device_expiry_seconds = device_expiry_seconds
 
     def update_device(
-        self, mac: str, name: str, rssi: int, proxy_name: str, ad_data: Optional[dict] = None
+        self, mac: str, name: str, rssi: int, proxy_name: str, ad_data: dict | None = None
     ) -> None:
         """
         Update or add a discovered device.
@@ -73,7 +73,7 @@ class DeviceManager:
                 f"Discovered new device: {name} ({mac}) RSSI={best_rssi} via {best_proxy_name}"
             )
 
-    def get_devices(self, include_stale: bool = False) -> List[DiscoveredDevice]:
+    def get_devices(self, include_stale: bool = False) -> list[DiscoveredDevice]:
         """
         Get all discovered devices.
 
@@ -94,7 +94,7 @@ class DeviceManager:
             if device.last_seen > cutoff
         ]
 
-    def get_device(self, mac: str) -> Optional[DiscoveredDevice]:
+    def get_device(self, mac: str) -> DiscoveredDevice | None:
         """
         Get a specific device by MAC address.
 
@@ -107,7 +107,7 @@ class DeviceManager:
         mac = mac.upper().replace("-", ":")
         return self.devices.get(mac)
 
-    def select_best_proxy(self, mac: str) -> Optional[str]:
+    def select_best_proxy(self, mac: str) -> str | None:
         """
         Select the proxy with the best RSSI for a device.
 
@@ -130,7 +130,7 @@ class DeviceManager:
         )
         return best_proxy[0]
 
-    def get_proxy_rssi(self, mac: str, proxy_name: str) -> Optional[int]:
+    def get_proxy_rssi(self, mac: str, proxy_name: str) -> int | None:
         """
         Get the RSSI value for a device from a specific proxy.
 

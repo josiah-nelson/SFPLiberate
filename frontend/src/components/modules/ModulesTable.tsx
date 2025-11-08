@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
+import type { ModuleRow } from '@/app/modules/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -31,15 +32,6 @@ import {
 import { toast } from 'sonner';
 import { writeSfpFromModuleId } from '@/lib/ble/manager';
 import { features } from '@/lib/features';
-
-type ModuleRow = {
-  id: number;
-  vendor?: string;
-  model?: string;
-  serial?: string;
-  size?: number;
-  created_at?: string;
-};
 
 interface ModulesTableProps {
   initialData: ModuleRow[];
@@ -76,7 +68,7 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
     }
   }
 
-  const onWrite = async (id: number) => {
+  const onWrite = async (id: string) => {
     try {
       toast('Starting write...', { description: `Module #${id}` });
       await writeSfpFromModuleId(id);
@@ -90,7 +82,7 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
     if (!query) return true;
     const q = query.toLowerCase();
     return (
-      String(m.id).includes(q) ||
+      m.id.toLowerCase().includes(q) ||
       (m.vendor || '').toLowerCase().includes(q) ||
       (m.model || '').toLowerCase().includes(q) ||
       (m.serial || '').toLowerCase().includes(q)
@@ -99,7 +91,7 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
 
   const columns = useMemo<ColumnDef<ModuleRow>[]>(
     () => [
-      { accessorKey: 'id', header: 'ID', cell: (info) => `#${info.getValue<number>()}` },
+      { accessorKey: 'id', header: 'ID', cell: (info) => `#${info.getValue<string>()}` },
       { accessorKey: 'vendor', header: 'Vendor' },
       { accessorKey: 'model', header: 'Model' },
       { accessorKey: 'serial', header: 'Serial' },

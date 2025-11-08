@@ -95,6 +95,10 @@ export async function getTeams(): Promise<AppwriteTeams> {
  */
 export type UserRole = 'admin' | 'alpha' | null;
 
+type RoleCachingPreferences = Models.Preferences & {
+    role?: UserRole;
+};
+
 /**
  * Extended user type with role information
  */
@@ -123,7 +127,8 @@ export interface AuthState {
 async function getUserRole(user: Models.User<Models.Preferences>): Promise<UserRole> {
     try {
         // Check preferences cache first (instant, no API call)
-        const cachedRole = user.prefs.role as UserRole | undefined;
+        const prefs = user.prefs as RoleCachingPreferences;
+        const cachedRole = prefs.role as UserRole | undefined;
         if (cachedRole) {
             return cachedRole;
         }
@@ -133,7 +138,8 @@ async function getUserRole(user: Models.User<Models.Preferences>): Promise<UserR
 
         // Cache role in preferences for next time (fire and forget)
         if (role) {
-            updatePreferences({ ...user.prefs, role }).catch((error) => {
+            const updatedPrefs: RoleCachingPreferences = { ...prefs, role };
+            updatePreferences(updatedPrefs).catch((error) => {
                 if (process.env.NODE_ENV === 'development') {
                     console.warn('Failed to cache role in preferences:', error);
                 }
@@ -410,7 +416,9 @@ export function requireAdmin(user: AppwriteUser | null): void {
 /**
  * Update user preferences
  */
-export async function updatePreferences(prefs: Models.Preferences): Promise<Models.User<Models.Preferences>> {
+export async function updatePreferences(
+    prefs: Models.Preferences
+): Promise<Models.User<Models.Preferences>> {
     const account = await getAccount();
     return await account.updatePrefs(prefs);
 }

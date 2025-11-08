@@ -79,14 +79,17 @@ export function handleAuthError(error: any, context: string): never {
 
   if (error?.code) {
     errorCode = String(error.code);
-    message = ERROR_MESSAGES[errorCode] || message;
   } else if (error?.type) {
     errorCode = error.type;
+  }
+
+  if (errorCode) {
     message = ERROR_MESSAGES[errorCode] || message;
   }
 
   // Check for rate limit in message
-  if (error?.message?.toLowerCase().includes('rate limit')) {
+  const normalized = error?.message?.toLowerCase();
+  if (normalized && normalized.includes('rate limit')) {
     message = ERROR_MESSAGES['429'];
     errorCode = '429';
   }
@@ -108,10 +111,15 @@ export function handleAPIError(error: any, context: string): never {
 
   let message = 'An error occurred. Please try again';
 
+  let errorCode: string | undefined;
   if (error?.code) {
-    message = ERROR_MESSAGES[String(error.code)] || message;
+    errorCode = String(error.code);
   } else if (error?.type) {
-    message = ERROR_MESSAGES[error.type] || message;
+    errorCode = error.type;
+  }
+
+  if (errorCode) {
+    message = ERROR_MESSAGES[errorCode] || message;
   }
 
   throw new Error(message);

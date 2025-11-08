@@ -1,14 +1,14 @@
 """Home Assistant Bluetooth API endpoints."""
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.services.ha_bluetooth import (
-    HomeAssistantBluetoothClient,
     HABluetoothDevice,
     HADeviceConnectionRequest,
     HADeviceConnectionResponse,
+    HomeAssistantBluetoothClient,
 )
 from app.services.ha_bluetooth.schemas import HABluetoothStatus
 
@@ -57,13 +57,13 @@ async def get_status(
         )
     except Exception as e:
         logger.error(f"Error getting HA Bluetooth status: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/devices", response_model=List[HABluetoothDevice])
+@router.get("/devices", response_model=list[HABluetoothDevice])
 async def get_devices(
     client: HomeAssistantBluetoothClient = Depends(get_ha_bluetooth_client)
-) -> List[HABluetoothDevice]:
+) -> list[HABluetoothDevice]:
     """
     Get auto-discovered Bluetooth devices from Home Assistant.
 
@@ -80,7 +80,7 @@ async def get_devices(
 
     except Exception as e:
         logger.error(f"Error getting devices: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to get devices: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get devices: {e}") from e
 
 
 @router.post("/connect", response_model=HADeviceConnectionResponse)
@@ -118,12 +118,12 @@ async def connect_device(
 
     except ValueError as e:
         logger.warning(f"Device connection failed (not found): {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
     except RuntimeError as e:
         logger.error(f"Device connection failed (runtime error): {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     except Exception as e:
         logger.error(f"Unexpected error connecting to device: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Connection failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Connection failed: {e}") from e

@@ -13,10 +13,10 @@ from pydantic import ValidationError
 from app.services.esphome import ESPHomeProxyService
 from app.services.esphome.connection_manager import ConnectionManager
 from app.services.esphome.websocket_schemas import (
-    BLEConnectMessage,
     BLEConnectedMessage,
-    BLEDisconnectMessage,
+    BLEConnectMessage,
     BLEDisconnectedMessage,
+    BLEDisconnectMessage,
     BLEErrorMessage,
     BLEMessageType,
     BLENotificationMessage,
@@ -240,7 +240,10 @@ class ESPHomeWebSocketHandler:
         # ESPHome doesn't support selective unsubscribe - would need to disconnect
         await self.send_status(
             connected=True,
-            message=f"Unsubscribe from {message.characteristic_uuid} (disconnect to stop notifications)",
+            message=(
+                f"Unsubscribe from {message.characteristic_uuid} "
+                "(disconnect to stop notifications)"
+            ),
         )
 
     async def send_message(self, message: dict[str, Any]) -> None:

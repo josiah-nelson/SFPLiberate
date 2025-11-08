@@ -7,8 +7,8 @@ import os
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
 import structlog
+from fastapi import APIRouter, HTTPException
 
 from app.config import get_settings
 from app.schemas.submission import SubmissionCreate, SubmissionResponse
@@ -29,7 +29,7 @@ async def submit_to_community(payload: SubmissionCreate) -> SubmissionResponse:
         eeprom = base64.b64decode(payload.eeprom_data_base64)
     except Exception as e:
         logger.warning("invalid_submission_base64", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid Base64 data")
+        raise HTTPException(status_code=400, detail="Invalid Base64 data") from e
 
     sha = hashlib.sha256(eeprom).hexdigest()
     inbox_root = settings.submissions_dir

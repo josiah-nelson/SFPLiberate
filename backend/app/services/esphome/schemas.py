@@ -1,9 +1,10 @@
 """Pydantic models for ESPHome Bluetooth Proxy integration."""
 
-from datetime import datetime
-from typing import Annotated, Optional
-from pydantic import AfterValidator, BaseModel, Field
 import re
+from datetime import datetime
+from typing import Annotated
+
+from pydantic import AfterValidator, BaseModel, Field
 
 
 def _validate_mac_address(v: str) -> str:
@@ -26,7 +27,7 @@ class ESPHomeProxy(BaseModel):
     name: str = Field(..., description="Proxy hostname (e.g., 'living-room-proxy')")
     address: str = Field(..., description="IP address")
     port: int = Field(default=6053, description="ESPHome API port")
-    mac_address: Optional[str] = Field(None, description="Proxy MAC address")
+    mac_address: str | None = Field(None, description="Proxy MAC address")
     connected: bool = Field(default=False, description="Connection status")
     last_seen: datetime = Field(default_factory=datetime.utcnow)
 
@@ -39,7 +40,7 @@ class DiscoveredDevice(BaseModel):
     rssi: int = Field(..., description="Signal strength (dBm)")
     best_proxy: str = Field(..., description="Proxy name with best RSSI")
     last_seen: datetime = Field(default_factory=datetime.utcnow)
-    advertisement_data: Optional[dict] = Field(
+    advertisement_data: dict | None = Field(
         None, description="Raw advertisement data"
     )
 
@@ -58,7 +59,7 @@ class DeviceConnectionResponse(BaseModel):
     service_uuid: str = Field(..., description="Primary service UUID")
     notify_char_uuid: str = Field(..., description="Notification characteristic UUID")
     write_char_uuid: str = Field(..., description="Write characteristic UUID")
-    device_name: Optional[str] = Field(None, description="Device name")
+    device_name: str | None = Field(None, description="Device name")
     proxy_used: str = Field(..., description="ESPHome proxy that performed connection")
 
 
@@ -82,11 +83,11 @@ class BLEDeviceProfile(BaseModel):
     service_uuid: str = Field(..., description="GATT service UUID")
     notify_char_uuid: str = Field(..., description="Notify characteristic UUID")
     write_char_uuid: str = Field(..., description="Write characteristic UUID")
-    device_name: Optional[str] = Field(None, description="Friendly device name")
-    created_at: Optional[datetime] = Field(
+    device_name: str | None = Field(None, description="Friendly device name")
+    created_at: datetime | None = Field(
         default_factory=datetime.utcnow, description="Profile creation time"
     )
-    updated_at: Optional[datetime] = Field(
+    updated_at: datetime | None = Field(
         default_factory=datetime.utcnow, description="Profile last update time"
     )
 
@@ -98,4 +99,4 @@ class BLEDeviceProfileCreate(BaseModel):
     service_uuid: str
     notify_char_uuid: str
     write_char_uuid: str
-    device_name: Optional[str] = None
+    device_name: str | None = None

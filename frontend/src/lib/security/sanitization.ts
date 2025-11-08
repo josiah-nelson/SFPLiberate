@@ -45,14 +45,15 @@ export function sanitizeHTML(input: string, maxLength?: number): string {
   // Ensure all external links have security attributes
   sanitized = sanitized.replace(
     /<a\s+([^>]*href=["']https?:\/\/[^"']+["'][^>]*)>/gi,
-    (match, attrs) => {
-      if (!attrs.includes('target=')) {
-        attrs += ' target="_blank"';
+    (_match: string, attrs: string) => {
+      let normalized = attrs;
+      if (!normalized.includes('target=')) {
+        normalized += ' target="_blank"';
       }
-      if (!attrs.includes('rel=')) {
-        attrs += ' rel="noopener noreferrer"';
+      if (!normalized.includes('rel=')) {
+        normalized += ' rel="noopener noreferrer"';
       }
-      return `<a ${attrs}>`;
+      return `<a ${normalized}>`;
     }
   );
 

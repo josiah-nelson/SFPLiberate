@@ -2,11 +2,11 @@
 
 import asyncio
 import shutil
-import structlog
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
+
+import structlog
 
 from app.config import get_settings
 
@@ -30,7 +30,7 @@ class DatabaseBackupService:
         """
         self.settings = get_settings()
         self.max_backups = max_backups
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._running = False
 
         # Derive database file path from database_url
@@ -128,7 +128,7 @@ class DatabaseBackupService:
             interval_seconds = self.settings.database_backup_interval * 3600
             await asyncio.sleep(interval_seconds)
 
-    async def create_backup(self) -> Optional[Path]:
+    async def create_backup(self) -> Path | None:
         """
         Create a database backup.
 
@@ -248,7 +248,9 @@ class DatabaseBackupService:
             # Use standard backup filename pattern so cleanup logic will manage it
             if self.db_file.exists():
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                pre_restore_backup = self.backup_dir / f"sfp_library_backup_pre_restore_{timestamp}.db"
+                pre_restore_backup = self.backup_dir / (
+                    f"sfp_library_backup_pre_restore_{timestamp}.db"
+                )
                 await asyncio.to_thread(shutil.copy2, self.db_file, pre_restore_backup)
                 logger.info("database_pre_restore_backup_created", file=pre_restore_backup.name)
             else:

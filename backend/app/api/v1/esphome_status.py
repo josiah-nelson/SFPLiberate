@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+
 from app.config import get_settings
 
 router = APIRouter(prefix="/esphome")

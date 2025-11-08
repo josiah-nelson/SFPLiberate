@@ -3,9 +3,10 @@
 import asyncio
 import logging
 import time
-from typing import Dict, List, Optional, Tuple
-from .proxy_manager import ProxyManager
+from typing import Optional
+
 from .device_manager import DeviceManager
+from .proxy_manager import ProxyManager
 from .schemas import DeviceConnectionResponse, DiscoveredDevice, ESPHomeProxy
 
 logger = logging.getLogger(__name__)
@@ -36,9 +37,9 @@ class ESPHomeProxyService:
         self._initialized = True
         self.proxy_manager = ProxyManager()
         self.device_manager = DeviceManager(device_expiry_seconds=settings.esphome_device_expiry)
-        self._discovery_task: Optional[asyncio.Task] = None
-        self._cleanup_task: Optional[asyncio.Task] = None
-        self._advertisement_cache: Dict[Tuple[str, int], float] = {}
+        self._discovery_task: asyncio.Task | None = None
+        self._cleanup_task: asyncio.Task | None = None
+        self._advertisement_cache: dict[tuple[str, int], float] = {}
         self._cache_window = settings.esphome_cache_window
 
         logger.info("ESPHomeProxyService initialized")
@@ -62,7 +63,12 @@ class ESPHomeProxyService:
                 connected=False,
             )
             self.proxy_manager.proxies[settings.esphome_proxy_name] = manual_proxy
-            logger.info(f"Registered manual proxy: {settings.esphome_proxy_name} @ {settings.esphome_proxy_host}:{settings.esphome_proxy_port}")
+            logger.info(
+                "manual_proxy_registered",
+                name=settings.esphome_proxy_name,
+                host=settings.esphome_proxy_host,
+                port=settings.esphome_proxy_port,
+            )
 
         # Start mDNS discovery
         await self.proxy_manager.discover_proxies()
@@ -180,10 +186,16 @@ class ESPHomeProxyService:
 
             # Filter for SFP devices (case-insensitive)
             if "sfp" not in name.lower():
-                logger.debug(f"Ignoring non-SFP device: {name} ({mac})")
+                logger.debug("non_sfp_device", name=name, mac=mac)
                 return
 
-            logger.debug(f"Processing SFP advertisement: {name} ({mac}) RSSI={rssi} via {proxy_name}")
+            logger.debug(
+                "sfp_advertisement",
+                name=name,
+                mac=mac,
+                rssi=rssi,
+                proxy=proxy_name,
+            )
 
             # Update device manager
             self.device_manager.update_device(
@@ -201,7 +213,7 @@ class ESPHomeProxyService:
         except Exception as e:
             logger.error(f"Error handling advertisement: {e}", exc_info=True)
 
-    def get_discovered_devices(self) -> List[DiscoveredDevice]:
+    def get_discovered_devices(self) -> list[DiscoveredDevice]:
         """
         Get current list of discovered SFP devices.
 
@@ -210,7 +222,7 @@ class ESPHomeProxyService:
         """
         return self.device_manager.get_devices(include_stale=False)
 
-    def get_discovered_proxies(self) -> List[ESPHomeProxy]:
+    def get_discovered_proxies(self) -> list[ESPHomeProxy]:
         """
         Get list of discovered ESPHome proxies.
 
@@ -233,7 +245,7 @@ class ESPHomeProxyService:
             ValueError: If device not found or no suitable service
             RuntimeError: If proxy connection fails
         """
-        logger.info(f"Connecting to device {mac_address} to retrieve UUIDs...")
+        logger.info("proxy_connect_start", mac=mac_address)
 
         # Normalize MAC
         mac_address = mac_address.upper().replace("-", ":")
@@ -251,7 +263,7 @@ class ESPHomeProxyService:
         if not client:
             raise RuntimeError(f"Proxy {proxy_name} is not connected")
 
-        logger.info(f"Using proxy '{proxy_name}' to connect to {mac_address}")
+        logger.info("proxy_connect_selected", proxy=proxy_name, mac=mac_address)
 
         from app.config import get_settings
         settings = get_settings()
@@ -263,7 +275,7 @@ class ESPHomeProxyService:
                 timeout=settings.esphome_connection_timeout
             )
 
-            logger.info(f"Connected to device {mac_address}")
+            logger.info("proxy_connect_success", mac=mac_address)
 
             # Get GATT services
             services = await asyncio.wait_for(
@@ -281,8 +293,11 @@ class ESPHomeProxyService:
             device_name = device.name if device else None
 
             logger.info(
-                f"Successfully retrieved UUIDs from {mac_address}: "
-                f"service={service_uuid}, notify={notify_uuid}, write={write_uuid}"
+                "proxy_uuid_success",
+                mac=mac_address,
+                service=service_uuid,
+                notify=notify_uuid,
+                write=write_uuid,
             )
 
             return DeviceConnectionResponse(
@@ -293,19 +308,21 @@ class ESPHomeProxyService:
                 proxy_used=proxy_name,
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError as exc:
             logger.error(f"Timeout connecting to device {mac_address}")
-            raise RuntimeError("Connection timeout - device may be out of range or busy")
+            raise RuntimeError(
+                "Connection timeout - device may be out of range or busy"
+            ) from exc
 
         finally:
             # Always disconnect
             try:
                 await client.bluetooth_device_disconnect(mac_address)
-                logger.debug(f"Disconnected from device {mac_address}")
+                logger.debug("proxy_disconnect", mac=mac_address)
             except Exception as e:
                 logger.warning(f"Error disconnecting from device: {e}")
 
-    def _parse_gatt_services(self, services) -> Tuple[str, str, str]:
+    def _parse_gatt_services(self, services) -> tuple[str, str, str]:
         """
         Parse GATT services to find notify/write characteristics.
 

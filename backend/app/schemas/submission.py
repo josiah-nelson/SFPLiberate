@@ -1,6 +1,6 @@
 """Pydantic schemas for community submissions."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class SubmissionCreate(BaseModel):

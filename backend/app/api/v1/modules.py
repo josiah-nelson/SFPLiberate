@@ -2,9 +2,9 @@
 
 import base64
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
 
 from app.core.database import get_db
 from app.schemas.module import ModuleCreate, ModuleInfo, StatusMessage
@@ -41,7 +41,7 @@ async def create_module(
         eeprom_data = base64.b64decode(module.eeprom_data_base64)
     except Exception as e:
         logger.warning("invalid_base64_data", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid Base64 data")
+        raise HTTPException(status_code=400, detail="Invalid Base64 data") from e
 
     service = ModuleService(db)
     created_module, is_duplicate = await service.add_module(
