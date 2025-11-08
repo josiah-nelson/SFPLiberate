@@ -1,6 +1,7 @@
 # BUILD_FROM is passed by Home Assistant builder from build.yaml
 # Must be declared globally for multi-stage builds
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22
+ARG BUILD_VERSION="dev"
 
 # ============================================================================
 # Stage 1: Backend build
@@ -59,6 +60,7 @@ RUN npm run build
 # ============================================================================
 # Re-declare BUILD_FROM for this stage
 ARG BUILD_FROM
+ARG BUILD_VERSION
 FROM ${BUILD_FROM}
 
 # Install runtime dependencies
@@ -104,7 +106,7 @@ LABEL \
     io.hass.description="Bluetooth companion for Ubiquiti SFP Wizard" \
     io.hass.arch="aarch64|amd64|armhf|armv7" \
     io.hass.type="addon" \
-    io.hass.version="1.0.0" \
+    io.hass.version="${BUILD_VERSION}" \
     maintainer="Josiah Nelson <https://github.com/josiah-nelson>" \
     org.opencontainers.image.title="SFPLiberate" \
     org.opencontainers.image.description="Bluetooth companion for Ubiquiti SFP Wizard" \
