@@ -76,7 +76,7 @@
           "required": true,
           "array": false,
           "min": 0,
-          "max": 1048576,
+          "max": 262144,
           "key": "size"
         }
       ],
