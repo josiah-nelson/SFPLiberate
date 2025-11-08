@@ -910,9 +910,11 @@ def calculate_writeability_score(reports: List[CompatibilityReport]) -> float:
 
     # Calculate components
     success_rate = sum(r.write_successful for r in reports) / len(reports)
-    avg_rating = np.mean([r.writeability_score for r in reports if r.writeability_score])
-    link_rate = sum(r.link_established for r in reports if r.link_established is not None) / len([r for r in reports if r.link_established is not None])
-    stability_rate = sum(r.stable_operation for r in reports if r.stable_operation is not None) / len([r for r in reports if r.stable_operation is not None])
+    avg_rating = np.mean([r.writeability_score for r in reports if r.writeability_score is not None])
+    link_reports = [r for r in reports if r.link_established is not None]
+    link_rate = sum(r.link_established for r in link_reports) / len(link_reports) if link_reports else 0
+    stability_reports = [r for r in reports if r.stable_operation is not None]
+    stability_rate = sum(r.stable_operation for r in stability_reports) / len(stability_reports) if stability_reports else 0
 
     # Weighted average
     score = (
