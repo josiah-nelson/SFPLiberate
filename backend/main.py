@@ -16,7 +16,4 @@ if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 # Now import the actual application
-from app.main import main
-
-# Export the handler for Appwrite
-__all__ = ['main']
+from app.main import app
