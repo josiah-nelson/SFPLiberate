@@ -18,7 +18,7 @@ const withBundleAnalyzer = initializeBundleAnalyzer({
  * 3. appwrite: Appwrite Sites (SSR) with API proxy to Appwrite Functions
  *
  * Deployment mode is automatically detected:
- * - Appwrite Sites: Presence of APPWRITE_ENDPOINT or APPWRITE_PROJECT_ID
+ * - Appwrite Sites: Presence of APPWRITE_FUNCTION_* or APPWRITE_* variables
  * - Home Assistant: DEPLOYMENT_MODE=homeassistant
  * - Standalone: Default (Docker deployment)
  *
@@ -27,7 +27,12 @@ const withBundleAnalyzer = initializeBundleAnalyzer({
  * - API Pattern: /api/* rewrites to backend
  * - Zero code divergence between modes
  */
-const isAppwriteSite = !!(process.env.APPWRITE_ENDPOINT || process.env.APPWRITE_PROJECT_ID);
+const isAppwriteSite = !!(
+    process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
+    process.env.APPWRITE_FUNCTION_PROJECT_ID ||
+    process.env.APPWRITE_ENDPOINT ||
+    process.env.APPWRITE_PROJECT_ID
+);
 const deploymentMode = isAppwriteSite ? 'appwrite' : (process.env.DEPLOYMENT_MODE || 'standalone').toLowerCase();
 const isStandalone = deploymentMode === 'standalone';
 const isHomeAssistant = deploymentMode === 'homeassistant';

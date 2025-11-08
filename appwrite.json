@@ -8,7 +8,7 @@
       "name": "SFPLiberate Backend API",
       "runtime": "python-3.12",
       "path": "backend",
-      "entrypoint": "app/main.py",
+      "entrypoint": "main.py",
       "ignore": [
         ".venv",
         "__pycache__",

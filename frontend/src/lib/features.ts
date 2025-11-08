@@ -3,16 +3,20 @@
  *
  * This module provides automatic deployment mode detection:
  * 1. Standalone deployment (Docker, self-hosted) - Default, no Appwrite variables
- * 2. Appwrite cloud deployment (Public instance) - Auto-detected by presence of APPWRITE_SITE_* variables
+ * 2. Appwrite cloud deployment (Public instance) - Auto-detected by presence of APPWRITE_FUNCTION_* or APPWRITE_* variables
  *
  * Deployment mode is AUTOMATICALLY DETECTED - no manual configuration needed.
+ * Matches detection logic in next.config.ts for consistency.
  */
 
 export type DeploymentMode = 'standalone' | 'appwrite';
 
 /**
  * Get Appwrite endpoint (cloud only)
- * Appwrite Sites auto-injects APPWRITE_FUNCTION_API_ENDPOINT at runtime
+ *
+ * Checks multiple sources in order of precedence:
+ * 1. APPWRITE_FUNCTION_API_ENDPOINT (auto-injected by Appwrite Functions)
+ * 2. APPWRITE_ENDPOINT (custom env var)
  */
 export function getAppwriteEndpoint(): string | undefined {
   return process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
@@ -21,7 +25,10 @@ export function getAppwriteEndpoint(): string | undefined {
 
 /**
  * Get Appwrite project ID (cloud only)
- * Appwrite Sites auto-injects APPWRITE_FUNCTION_PROJECT_ID at runtime
+ *
+ * Checks multiple sources in order of precedence:
+ * 1. APPWRITE_FUNCTION_PROJECT_ID (auto-injected by Appwrite Functions)
+ * 2. APPWRITE_PROJECT_ID (custom env var)
  */
 export function getAppwriteProjectId(): string | undefined {
   return process.env.APPWRITE_FUNCTION_PROJECT_ID ||
@@ -30,13 +37,23 @@ export function getAppwriteProjectId(): string | undefined {
 
 /**
  * Get the current deployment mode
- * Auto-detected based on presence of Appwrite environment variables
+ *
+ * Auto-detected based on presence of Appwrite environment variables.
+ * This matches the detection logic in next.config.ts.
  */
 export function getDeploymentMode(): DeploymentMode {
-  // If Appwrite variables are present, we're in Appwrite cloud deployment
-  if (getAppwriteEndpoint() && getAppwriteProjectId()) {
+  // Check for Appwrite-injected or custom variables
+  const hasAppwriteVars = !!(
+    process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
+    process.env.APPWRITE_FUNCTION_PROJECT_ID ||
+    process.env.APPWRITE_ENDPOINT ||
+    process.env.APPWRITE_PROJECT_ID
+  );
+
+  if (hasAppwriteVars) {
     return 'appwrite';
   }
+
   // Otherwise, standalone (Docker) deployment
   return 'standalone';
 }
