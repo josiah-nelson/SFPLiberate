@@ -95,11 +95,17 @@ See [homeassistant/README.md](homeassistant/README.md) for complete add-on docum
 - Optional ESPHome proxy for iOS/Safari
 
 **3. Appwrite Cloud**
-- Frontend hosted on Appwrite Sites (static export)
-- Backend as Appwrite Functions
-- Appwrite Database for storage
-- Authentication with Appwrite Auth
-- Community module repository
+- Frontend hosted on Appwrite Sites (SSR)
+- Native Appwrite Web SDK (no Functions backend)
+- Appwrite Databases/Storage for data
+- Authentication with Appwrite Auth; SSR node-appwrite uses a short‑lived JWT cookie bridge
+- Realtime module repository (no manual refresh button)
+
+Appwrite Mode Notes:
+- No `/api/*` calls are made; ESPHome/HA checks are gated off.
+- Client config (endpoint/projectId) is injected at runtime into `window.__APPWRITE_CONFIG__`.
+- SSR server actions accept either the Appwrite session cookie or a JWT cookie `a_jwt_<projectId>`.
+- CSP `connect-src` allows `https://*.appwrite.io https://nyc.cloud.appwrite.io` and `wss://*.appwrite.io`, plus `https://*.sfplib.com` for future custom APIs.
 
 ---
 

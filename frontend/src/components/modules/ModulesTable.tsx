@@ -32,6 +32,9 @@ import {
 import { toast } from 'sonner';
 import { writeSfpFromModuleId } from '@/lib/ble/manager';
 import { features } from '@/lib/features';
+import { isAppwrite } from '@/lib/features-client';
+import { mapDocumentToModuleRow } from '@/app/modules/types';
+import { appwriteResourceIds } from '@/lib/appwrite/config';
 
 interface ModulesTableProps {
   initialData: ModuleRow[];
@@ -52,11 +55,55 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
     setRows(initialData);
   }, [initialData]);
 
+  // Realtime updates in Appwrite mode
+  useEffect(() => {
+    if (!isAppwrite()) return;
+    let subscription: any;
+    (async () => {
+      try {
+        const { Realtime } = await import('appwrite');
+        const { getAppwriteClient } = await import('@/lib/auth');
+        const client = await getAppwriteClient();
+        const rt = new Realtime(client);
+        const channel = `databases.${appwriteResourceIds.databaseId}.collections.${appwriteResourceIds.userModulesCollectionId}.documents`;
+        subscription = await rt.subscribe(channel, (event: any) => {
+          const { events, payload } = event || {};
+          if (!events || !payload) return;
+          const row = mapDocumentToModuleRow(payload);
+          setRows((prev) => {
+            // upsert on create/update, remove on delete
+            const idx = prev.findIndex((r) => r.id === row.id);
+            if (events.some((e: string) => e.endsWith('.delete'))) {
+              if (idx >= 0) return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+              return prev;
+            }
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = { ...next[idx], ...row };
+              return next;
+            }
+            return [row, ...prev];
+          });
+        });
+      } catch (e) {
+        console.error('Failed to subscribe to Appwrite realtime:', e);
+      }
+    })();
+    return () => {
+      try {
+        if (subscription?.unsubscribe) subscription.unsubscribe();
+        else if (subscription?.close) subscription.close();
+      } catch {}
+    };
+  }, []);
+
+  // Standalone refresh function (no-op in Appwrite mode)
   async function refreshData() {
+    if (isAppwrite()) return; // gated, button hidden anyway
     setLoading(true);
     try {
       const res = await fetch(`${base}/v1/modules`, {
-        next: { revalidate: 60 }, // Cache for 60 seconds
+        next: { revalidate: 60 },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const list = await res.json();
@@ -147,9 +194,11 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
           <h1 className="text-2xl font-semibold tracking-tight">Modules</h1>
           <p className="mt-1 text-sm text-neutral-500">Saved EEPROM captures</p>
         </div>
-        <Button onClick={refreshData} variant="secondary" disabled={loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </Button>
+        {!isAppwrite() && (
+          <Button onClick={refreshData} variant="secondary" disabled={loading}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </Button>
+        )}
       </div>
       <Card>
         <CardHeader>

@@ -146,6 +146,22 @@ docs(readme): update BLE testing workflow
 ble: document write command sequence for firmware v1.2.3
 ```
 
+## Appwrite Sites Deployments
+
+When working on the Appwrite deployment target (cloud site):
+
+- Use the Appwrite CLI from `frontend/` to push site code:
+  ```bash
+  cd frontend
+  appwrite sites create-deployment --site-id sfpliberate --code . --activate true
+  ```
+- The frontend uses the native Appwrite Web SDK directly (no Appwrite Functions). Server actions use `node-appwrite` and accept either the Appwrite session cookie or a short‑lived JWT cookie set via `/api/auth/set-jwt` after login.
+- The modules page uses Appwrite Realtime; there is no manual "Refresh" in Appwrite mode.
+- Do not call `/api/*` in Appwrite mode. BLE/ESPHome checks are disabled for cloud.
+- CSP is configured in `frontend/next.config.ts` to allow:
+  - `connect-src`: `https://*.appwrite.io https://nyc.cloud.appwrite.io` and `wss://*.appwrite.io` for realtime
+  - `https://*.sfplib.com` for future custom APIs (HTTP and WebSocket)
+
 ## Testing Guidelines
 
 ### Manual Testing Requirements

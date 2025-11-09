@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { isHAAddonMode } from '@/lib/api/ha/haBluetoothClient';
+import { isAppwrite } from '@/lib/features-client';
 import { HABluetoothDiscovery } from './HABluetoothDiscovery';
 import { ConnectPanel } from '@/components/ble/ConnectPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,11 @@ export function HAModeDetector() {
   const [selectedDevice, setSelectedDevice] = useState<HABluetoothDevice | null>(null);
 
   useEffect(() => {
+    // Avoid HA checks in Appwrite mode (no /api endpoints)
+    if (isAppwrite()) {
+      setIsHA(false);
+      return;
+    }
     // Detect HA addon mode
     isHAAddonMode().then(setIsHA).catch(() => setIsHA(false));
   }, []);

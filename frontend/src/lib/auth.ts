@@ -12,7 +12,9 @@
 
 import type { Models } from 'appwrite';
 import { useEffect, useState } from 'react';
-import { getAppwriteEndpoint, getAppwriteProjectId, isAuthEnabled } from './features';
+import { getAppwriteEndpoint, getAppwriteProjectId } from './features';
+import { getBrowserClientConfig } from './client-config';
+import { isAuthEnabled as isAuthEnabledClient } from './features-client';
 import { loginLimiter, signupLimiter } from './security/rateLimiter';
 import { handleAuthError, AuthError } from './security/errors';
 
@@ -44,20 +46,25 @@ export async function getAppwriteClient(): Promise<AppwriteClient> {
         return appwriteClient;
     }
 
-    if (!isAuthEnabled()) {
-        throw new Error('Appwrite authentication is disabled in this deployment.');
-    }
-
-    const endpoint = getAppwriteEndpoint();
-    const projectId = getAppwriteProjectId();
-
-    if (!endpoint || !projectId) {
-        throw new Error('Appwrite configuration missing. APPWRITE_SITE_API_ENDPOINT and APPWRITE_SITE_PROJECT_ID should be auto-injected by Appwrite Sites. This error should only occur in development.');
-    }
-
     const { Client } = await loadAppwriteModule();
 
-    appwriteClient = new Client().setEndpoint(endpoint).setProject(projectId);
+    // Use dynamic runtime config in the browser; use server env on SSR
+    if (typeof window !== 'undefined') {
+        const cfg = await getBrowserClientConfig();
+        const endpoint = cfg?.endpoint;
+        const projectId = cfg?.projectId;
+        if (!endpoint || !projectId) {
+            throw new Error('Appwrite client configuration is missing in browser.');
+        }
+        appwriteClient = new Client().setEndpoint(endpoint).setProject(projectId);
+    } else {
+        const endpoint = getAppwriteEndpoint();
+        const projectId = getAppwriteProjectId();
+        if (!endpoint || !projectId) {
+            throw new Error('Appwrite configuration missing on server environment.');
+        }
+        appwriteClient = new Client().setEndpoint(endpoint).setProject(projectId);
+    }
 
     return appwriteClient;
 }
@@ -221,7 +228,7 @@ export function useAuth(): AuthState {
 
     useEffect(() => {
         // Skip auth if not enabled
-        if (!isAuthEnabled()) {
+        if (!isAuthEnabledClient()) {
             setState({
                 user: null,
                 loading: false,
@@ -306,6 +313,19 @@ export async function login(email: string, password: string): Promise<AppwriteUs
         const account = await getAccount();
         await account.createEmailPasswordSession(emailLower, password);
         const user = await account.get();
+        // Bridge SSR auth via short-lived JWT cookie
+        try {
+            const jwt = await account.createJWT();
+            await fetch('/api/auth/set-jwt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jwt: jwt.jwt }),
+            });
+        } catch (e) {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('Failed to create bridge JWT', e);
+            }
+        }
         const role = await getUserRole(user);
 
         // Success - reset rate limit
@@ -378,6 +398,8 @@ export async function logout(): Promise<void> {
     try {
         const account = await getAccount();
         await account.deleteSession('current');
+        // Clear JWT bridge cookie
+        await fetch('/api/auth/clear-jwt', { method: 'POST' });
     } catch (error) {
         handleAuthError(error, 'logout');
     }

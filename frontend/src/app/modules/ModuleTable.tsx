@@ -23,6 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DeploymentMode } from '@/lib/features-client';
 import { writeSfpFromModuleId } from '@/lib/ble/manager';
+import { appwriteResourceIds } from '@/lib/appwrite/config';
+import { mapDocumentToModuleRow, type ModuleRow as Row } from './types';
 
 import { loadModulesAction } from './actions';
 import type { ModuleRow } from './types';
@@ -50,6 +52,47 @@ export function ModuleTable({ initialModules, deploymentMode, initialError }: Mo
       toast.error(initialError);
     }
   }, [initialError]);
+
+  // Appwrite realtime updates (no manual refresh needed)
+  useEffect(() => {
+    if (deploymentMode !== 'appwrite') return;
+    let subscription: any;
+    (async () => {
+      try {
+        const { Realtime } = await import('appwrite');
+        const { getAppwriteClient } = await import('@/lib/auth');
+        const client = await getAppwriteClient();
+        const rt = new Realtime(client);
+        const channel = `databases.${appwriteResourceIds.databaseId}.collections.${appwriteResourceIds.userModulesCollectionId}.documents`;
+        subscription = await rt.subscribe(channel, (event: any) => {
+          const { events, payload } = event || {};
+          if (!events || !payload) return;
+          const row = mapDocumentToModuleRow(payload as any) as Row;
+          setRows((prev) => {
+            const idx = prev.findIndex((r) => r.id === row.id);
+            if (events.some((e: string) => e.endsWith('.delete'))) {
+              if (idx >= 0) return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+              return prev;
+            }
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = { ...next[idx], ...row };
+              return next;
+            }
+            return [row, ...prev];
+          });
+        });
+      } catch (e) {
+        console.error('Failed to subscribe to Appwrite realtime:', e);
+      }
+    })();
+    return () => {
+      try {
+        if (subscription?.unsubscribe) subscription.unsubscribe();
+        else if (subscription?.close) subscription.close();
+      } catch {}
+    };
+  }, [deploymentMode]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -162,9 +205,11 @@ export function ModuleTable({ initialModules, deploymentMode, initialError }: Mo
             {deploymentMode === 'appwrite' ? 'Appwrite Cloud Library' : 'Local Library'}
           </Badge>
         </div>
-        <Button onClick={load} variant="secondary" disabled={loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </Button>
+        {deploymentMode !== 'appwrite' && (
+          <Button onClick={load} variant="secondary" disabled={loading}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </Button>
+        )}
       </div>
       <Card>
         <CardHeader>

@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isIOS, isSafari, isWebBluetoothAvailable } from '@/lib/ble/webbluetooth';
 import { toast } from 'sonner';
 import { detectBluetoothSupport } from '@/lib/ble/support';
-import { isStandalone } from '@/lib/features';
+import { isStandalone } from '@/lib/features-client';
 
 // Server snapshot that returns stable initial state
 const getServerSnapshot = () => ({
@@ -44,6 +44,8 @@ export function ConnectPanel() {
 
   useEffect(() => {
     const loadModules = async () => {
+      // Only available in standalone/HA modes
+      if (!isStandalone()) return;
       try {
         const list = await listModules();
         setModules(list);

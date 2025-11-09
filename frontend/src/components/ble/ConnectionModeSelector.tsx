@@ -4,6 +4,7 @@ import type { ConnectionMode } from '@/lib/ble/types';
 import { BLEProxyClient } from '@/lib/ble/proxyClient';
 import { isWebBluetoothAvailable } from '@/lib/ble/webbluetooth';
 import { getESPHomeClient } from '@/lib/esphome/esphomeClient';
+import { isAppwrite } from '@/lib/features-client';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -15,6 +16,10 @@ export function ConnectionModeSelector(props: { value: ConnectionMode; onChange:
   useEffect(() => {
     setProxyAvailable(BLEProxyClient.isAvailable());
 
+    if (isAppwrite()) {
+      setEsphomeAvailable(false);
+      return;
+    }
     // Check ESPHome availability
     const client = getESPHomeClient();
     client.isEnabled().then(setEsphomeAvailable).catch(() => setEsphomeAvailable(false));

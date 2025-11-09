@@ -21,7 +21,8 @@ type EnvKey =
   | 'APPWRITE_USER_BUCKET_ID'
   | 'APPWRITE_COMMUNITY_BLOB_BUCKET_ID'
   | 'APPWRITE_COMMUNITY_PHOTO_BUCKET_ID'
-  | 'APPWRITE_SESSION_COOKIE';
+  | 'APPWRITE_SESSION_COOKIE'
+  | 'APPWRITE_JWT_COOKIE';
 
 function getEnv(key: EnvKey): string | undefined {
 
@@ -53,6 +54,15 @@ export function getAppwriteSessionCookieName(projectId?: string): string {
   }
 
   return `a_session_${projectId}`;
+}
+
+export function getAppwriteJwtCookieName(projectId?: string): string {
+  const explicit = getEnv('APPWRITE_JWT_COOKIE');
+  if (explicit) return explicit;
+  if (!projectId) {
+    throw new Error('Project ID is required to derive the Appwrite JWT cookie name.');
+  }
+  return `a_jwt_${projectId}`;
 }
 
 export type AppwriteResourceIds = typeof appwriteResourceIds;

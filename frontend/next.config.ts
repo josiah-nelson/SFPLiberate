@@ -124,7 +124,7 @@ const nextConfig: NextConfig = {
                             "style-src 'self' 'unsafe-inline'",
                             "img-src 'self' data: https:",
                             "font-src 'self' data:",
-                            "connect-src 'self' https://*.appwrite.io https://nyc.cloud.appwrite.io",
+                            "connect-src 'self' https://*.appwrite.io https://nyc.cloud.appwrite.io wss://*.appwrite.io wss://nyc.cloud.appwrite.io https://*.sfplib.com wss://*.sfplib.com",
                             "frame-ancestors 'none'",
                             "base-uri 'self'",
                             "form-action 'self'"
@@ -137,11 +137,20 @@ const nextConfig: NextConfig = {
 
     // Redirect HTTP to HTTPS in production
     async redirects() {
+        // Disable custom HTTPS redirects for Appwrite Sites to avoid loops.
+        // Appwrite handles TLS termination; keep redirects only for non-Appwrite targets.
+        if (isAppwrite) return [];
+
         if (process.env.NODE_ENV === 'production' && !isHomeAssistant) {
             return [
                 {
                     source: '/:path*',
                     has: [
+                        // Capture the current host so we can safely reference :host
+                        {
+                            type: 'host',
+                            value: '(?<host>.*)'
+                        },
                         {
                             type: 'header',
                             key: 'x-forwarded-proto',

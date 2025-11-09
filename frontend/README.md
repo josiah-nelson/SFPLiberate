@@ -58,3 +58,12 @@ See `.env.example` for all available configuration options.
 
 **Part of:** [EPIC-001 Next.js Frontend Rewrite](../docs/NEXTJS_REWRITE_EPIC.md)
 **Status:** Phase 1 - Foundation
+
+## Appwrite Mode Notes
+
+- Hosted on Appwrite Sites (SSR) with native Web SDK; no Appwrite Functions required.
+- Client config (endpoint/projectId) is injected at runtime into `window.__APPWRITE_CONFIG__` from `layout.tsx`.
+- After login, the client creates a short-lived JWT and sends it to `/api/auth/set-jwt` so SSR server actions can authorize with `node-appwrite`.
+- Modules page uses Appwrite Realtime; no manual refresh button in Appwrite mode.
+- BLE/ESPHome checks are disabled in Appwrite mode (no `/api/*` calls in cloud).
+- CSP `connect-src` includes Appwrite (`https://*.appwrite.io`, `https://nyc.cloud.appwrite.io`, and `wss://*.appwrite.io`) and `https://*.sfplib.com` for future custom APIs.

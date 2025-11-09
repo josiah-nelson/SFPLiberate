@@ -1,19 +1,365 @@
 {
-    "$schema": "https://appwrite.io/schemas/appwrite.json",
-    "projectId": "${APPWRITE_PROJECT_ID}",
-    "projectName": "SFPLiberate",
-    "settings": {
-        "services": {
-            "account": true,
-            "avatars": false,
-            "databases": true,
-            "locale": false,
-            "health": false,
-            "storage": true,
-            "teams": true,
-            "users": false,
-            "functions": false,
-            "messaging": false
-        }
+  "$schema": "https://appwrite.io/schemas/appwrite.json",
+  "projectId": "69078b02001266c5d333",
+  "projectName": "sfpliberate",
+  "databases": [
+    {
+      "$id": "lib-core",
+      "name": "SFPLiberate Database",
+      "enabled": true
     }
+  ],
+  "collections": [
+    {
+      "$id": "user-modules",
+      "$permissions": [],
+      "databaseId": "lib-core",
+      "name": "User Modules",
+      "enabled": true,
+      "documentSecurity": true,
+      "attributes": [
+        {
+          "$id": "name",
+          "type": "string",
+          "size": 255,
+          "required": true,
+          "array": false,
+          "default": null,
+          "key": "name"
+        },
+        {
+          "$id": "vendor",
+          "type": "string",
+          "size": 100,
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "vendor"
+        },
+        {
+          "$id": "model",
+          "type": "string",
+          "size": 100,
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "model"
+        },
+        {
+          "$id": "serial",
+          "type": "string",
+          "size": 100,
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "serial"
+        },
+        {
+          "$id": "sha256",
+          "type": "string",
+          "size": 64,
+          "required": true,
+          "array": false,
+          "key": "sha256"
+        },
+        {
+          "$id": "eeprom_file_id",
+          "type": "string",
+          "size": 36,
+          "required": true,
+          "array": false,
+          "key": "eeprom_file_id"
+        },
+        {
+          "$id": "size",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "min": 0,
+          "max": 262144,
+          "key": "size"
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "idx_sha256",
+          "type": "unique",
+          "attributes": ["sha256"],
+          "orders": ["ASC"],
+          "key": "idx_sha256"
+        },
+        {
+          "$id": "idx_created",
+          "type": "key",
+          "attributes": ["$createdAt"],
+          "orders": ["DESC"],
+          "key": "idx_created"
+        }
+      ]
+    },
+    {
+      "$id": "community-modules",
+      "$permissions": ["read(\"any\")"],
+      "databaseId": "lib-core",
+      "name": "Community Modules",
+      "enabled": true,
+      "documentSecurity": true,
+      "attributes": [
+        {
+          "$id": "name",
+          "type": "string",
+          "size": 255,
+          "required": true,
+          "key": "name"
+        },
+        {
+          "$id": "vendor",
+          "type": "string",
+          "size": 100,
+          "required": false,
+          "key": "vendor"
+        },
+        {
+          "$id": "model",
+          "type": "string",
+          "size": 100,
+          "required": false,
+          "key": "model"
+        },
+        {
+          "$id": "serial",
+          "type": "string",
+          "size": 100,
+          "required": false,
+          "key": "serial"
+        },
+        {
+          "$id": "sha256",
+          "type": "string",
+          "size": 64,
+          "required": true,
+          "key": "sha256"
+        },
+        {
+          "$id": "blobId",
+          "type": "string",
+          "size": 36,
+          "required": true,
+          "key": "blobId"
+        },
+        {
+          "$id": "photoId",
+          "type": "string",
+          "size": 36,
+          "required": false,
+          "key": "photoId"
+        },
+        {
+          "$id": "size",
+          "type": "integer",
+          "required": true,
+          "key": "size"
+        },
+        {
+          "$id": "comments",
+          "type": "string",
+          "size": 1000,
+          "required": false,
+          "key": "comments"
+        },
+        {
+          "$id": "wavelength",
+          "type": "string",
+          "size": 50,
+          "required": false,
+          "key": "wavelength"
+        },
+        {
+          "$id": "maxDistance",
+          "type": "string",
+          "size": 50,
+          "required": false,
+          "key": "maxDistance"
+        },
+        {
+          "$id": "linkType",
+          "type": "string",
+          "size": 50,
+          "required": false,
+          "key": "linkType"
+        },
+        {
+          "$id": "formFactor",
+          "type": "string",
+          "size": 50,
+          "required": false,
+          "key": "formFactor"
+        },
+        {
+          "$id": "connectorType",
+          "type": "string",
+          "size": 50,
+          "required": false,
+          "key": "connectorType"
+        },
+        {
+          "$id": "submittedBy",
+          "type": "string",
+          "size": 100,
+          "required": false,
+          "key": "submittedBy"
+        },
+        {
+          "$id": "verified",
+          "type": "boolean",
+          "required": true,
+          "default": false,
+          "key": "verified"
+        },
+        {
+          "$id": "downloads",
+          "type": "integer",
+          "required": true,
+          "default": 0,
+          "key": "downloads"
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "idx_community_sha256",
+          "type": "unique",
+          "attributes": ["sha256"],
+          "key": "idx_community_sha256"
+        },
+        {
+          "$id": "idx_community_created",
+          "type": "key",
+          "attributes": ["$createdAt"],
+          "orders": ["DESC"],
+          "key": "idx_community_created"
+        }
+      ]
+    },
+    {
+      "$id": "invite_codes",
+      "$permissions": [],
+      "databaseId": "lib-core",
+      "name": "Invite Codes",
+      "enabled": true,
+      "documentSecurity": true,
+      "attributes": [
+        {
+          "$id": "code",
+          "type": "string",
+          "size": 64,
+          "required": true,
+          "array": false,
+          "key": "code"
+        },
+        {
+          "$id": "used",
+          "type": "boolean",
+          "required": true,
+          "default": false,
+          "array": false,
+          "key": "used"
+        },
+        {
+          "$id": "usedBy",
+          "type": "string",
+          "size": 36,
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "usedBy"
+        },
+        {
+          "$id": "usedAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "usedAt"
+        },
+        {
+          "$id": "createdBy",
+          "type": "string",
+          "size": 36,
+          "required": true,
+          "array": false,
+          "key": "createdBy"
+        },
+        {
+          "$id": "maxUses",
+          "type": "integer",
+          "required": true,
+          "default": 1,
+          "array": false,
+          "min": 1,
+          "max": 1000,
+          "key": "maxUses"
+        },
+        {
+          "$id": "expiresAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null,
+          "key": "expiresAt"
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "idx_code",
+          "type": "unique",
+          "attributes": ["code"],
+          "key": "idx_code"
+        },
+        {
+          "$id": "idx_used",
+          "type": "key",
+          "attributes": ["used"],
+          "key": "idx_used"
+        }
+      ]
+    }
+  ],
+  "buckets": [
+    {
+      "$id": "user-eeprom",
+      "$permissions": [],
+      "fileSecurity": true,
+      "name": "User EEPROM Data",
+      "enabled": true,
+      "maximumFileSize": 262144,
+      "allowedFileExtensions": ["bin"],
+      "compression": "none",
+      "encryption": true,
+      "antivirus": true
+    },
+    {
+      "$id": "community-blobs",
+      "$permissions": ["read(\"any\")"],
+      "fileSecurity": false,
+      "name": "Community EEPROM Blobs",
+      "enabled": true,
+      "maximumFileSize": 262144,
+      "allowedFileExtensions": ["bin"],
+      "compression": "none",
+      "encryption": true,
+      "antivirus": true
+    },
+    {
+      "$id": "community-photos",
+      "$permissions": ["read(\"any\")"],
+      "fileSecurity": false,
+      "name": "Community Module Photos",
+      "enabled": true,
+      "maximumFileSize": 5242880,
+      "allowedFileExtensions": ["jpg", "jpeg", "png", "webp"],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    }
+  ]
 }

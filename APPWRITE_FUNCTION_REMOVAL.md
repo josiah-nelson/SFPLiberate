@@ -13,6 +13,9 @@ The Appwrite backend Function (`backend-api` at api.sfplib.com) has been **depre
 
 ### After (Current)
 - **Appwrite mode**: Frontend → Native Appwrite SDK → Appwrite Database/Storage (direct)
+  - Sites SSR uses `node-appwrite` for server actions
+  - After login, client creates a short‑lived JWT and sets an HTTP‑only cookie; SSR accepts session cookie or JWT
+  - Modules library uses Appwrite Realtime updates (no manual refresh)
 - No backend API needed for Appwrite deployments
 - Simpler architecture, lower latency
 - Standalone/HA modes still use FastAPI backend as before

@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { Client } from 'node-appwrite';
 
 import { getAppwriteEndpoint, getAppwriteProjectId } from '../features';
-import { getAppwriteSessionCookieName } from './config';
+import { getAppwriteSessionCookieName, getAppwriteJwtCookieName } from './config';
 
 export async function createServerAppwriteClient(): Promise<Client> {
   const endpoint = getAppwriteEndpoint();
@@ -16,13 +16,18 @@ export async function createServerAppwriteClient(): Promise<Client> {
   const sessionCookieName = getAppwriteSessionCookieName(projectId);
   const sessionCookie = cookieStore.get(sessionCookieName);
 
-  if (!sessionCookie?.value) {
-    throw new Error('Missing Appwrite session cookie. Please sign in again.');
+  const client = new Client().setEndpoint(endpoint).setProject(projectId);
+
+  if (sessionCookie?.value) {
+    return client.setSession(sessionCookie.value);
   }
 
+  // Fallback to JWT cookie bridge
+  const jwtCookieName = getAppwriteJwtCookieName(projectId);
+  const jwtCookie = cookieStore.get(jwtCookieName);
+  if (jwtCookie?.value) {
+    return client.setJWT(jwtCookie.value);
+  }
 
-  return new Client()
-    .setEndpoint(endpoint)
-    .setProject(projectId)
-    .setSession(sessionCookie.value);
+  throw new Error('Missing Appwrite auth. Please sign in again.');
 }
