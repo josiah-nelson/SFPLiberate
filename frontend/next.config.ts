@@ -28,6 +28,8 @@ const withBundleAnalyzer = initializeBundleAnalyzer({
  * - Zero code divergence between modes
  */
 const isAppwriteSite = !!(
+    process.env.APPWRITE_SITE_API_ENDPOINT ||
+    process.env.APPWRITE_SITE_PROJECT_ID ||
     process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
     process.env.APPWRITE_FUNCTION_PROJECT_ID ||
     process.env.APPWRITE_ENDPOINT ||

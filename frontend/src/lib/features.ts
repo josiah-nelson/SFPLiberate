@@ -15,11 +15,13 @@ export type DeploymentMode = 'standalone' | 'appwrite';
  * Get Appwrite endpoint (cloud only)
  *
  * Checks multiple sources in order of precedence:
- * 1. APPWRITE_FUNCTION_API_ENDPOINT (auto-injected by Appwrite Functions)
- * 2. APPWRITE_ENDPOINT (custom env var)
+ * 1. APPWRITE_SITE_API_ENDPOINT (auto-injected by Appwrite Sites)
+ * 2. APPWRITE_FUNCTION_API_ENDPOINT (auto-injected by Appwrite Functions)
+ * 3. APPWRITE_ENDPOINT (custom env var)
  */
 export function getAppwriteEndpoint(): string | undefined {
-  return process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
+  return process.env.APPWRITE_SITE_API_ENDPOINT ||
+         process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
          process.env.APPWRITE_ENDPOINT;
 }
 
@@ -27,11 +29,13 @@ export function getAppwriteEndpoint(): string | undefined {
  * Get Appwrite project ID (cloud only)
  *
  * Checks multiple sources in order of precedence:
- * 1. APPWRITE_FUNCTION_PROJECT_ID (auto-injected by Appwrite Functions)
- * 2. APPWRITE_PROJECT_ID (custom env var)
+ * 1. APPWRITE_SITE_PROJECT_ID (auto-injected by Appwrite Sites)
+ * 2. APPWRITE_FUNCTION_PROJECT_ID (auto-injected by Appwrite Functions)
+ * 3. APPWRITE_PROJECT_ID (custom env var)
  */
 export function getAppwriteProjectId(): string | undefined {
-  return process.env.APPWRITE_FUNCTION_PROJECT_ID ||
+  return process.env.APPWRITE_SITE_PROJECT_ID ||
+         process.env.APPWRITE_FUNCTION_PROJECT_ID ||
          process.env.APPWRITE_PROJECT_ID;
 }
 
@@ -44,6 +48,8 @@ export function getAppwriteProjectId(): string | undefined {
 export function getDeploymentMode(): DeploymentMode {
   // Check for Appwrite-injected or custom variables
   const hasAppwriteVars = !!(
+    process.env.APPWRITE_SITE_API_ENDPOINT ||
+    process.env.APPWRITE_SITE_PROJECT_ID ||
     process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
     process.env.APPWRITE_FUNCTION_PROJECT_ID ||
     process.env.APPWRITE_ENDPOINT ||
@@ -171,10 +177,10 @@ export function validateEnvironment(): {
   // Validate Appwrite configuration (only if in Appwrite mode)
   if (mode === 'appwrite') {
     if (!getAppwriteEndpoint()) {
-      errors.push('APPWRITE_FUNCTION_API_ENDPOINT (auto-injected) or APPWRITE_ENDPOINT is missing');
+      errors.push('APPWRITE_SITE_API_ENDPOINT, APPWRITE_FUNCTION_API_ENDPOINT, or APPWRITE_ENDPOINT is missing');
     }
     if (!getAppwriteProjectId()) {
-      errors.push('APPWRITE_FUNCTION_PROJECT_ID (auto-injected) or APPWRITE_PROJECT_ID is missing');
+      errors.push('APPWRITE_SITE_PROJECT_ID, APPWRITE_FUNCTION_PROJECT_ID, or APPWRITE_PROJECT_ID is missing');
     }
     // API URL is always /api (unified pattern), no validation needed
   }
