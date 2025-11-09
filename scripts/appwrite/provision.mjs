@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Client, Databases, Storage } from 'node-appwrite';
+import { Client, Databases, Storage, Permission, Role } from 'node-appwrite';
 
 const endpoint = process.env.APPWRITE_ENDPOINT;
 const projectId = process.env.APPWRITE_PROJECT_ID;
@@ -38,13 +38,13 @@ async function ensureDatabase(databaseId, name) {
   }
 }
 
-async function ensureCollection(databaseId, collectionId, name, documentSecurity = true) {
+async function ensureCollection(databaseId, collectionId, name, documentSecurity = true, permissions = []) {
   try {
     await databases.getCollection(databaseId, collectionId);
     console.log(`✓ Collection '${collectionId}' exists`);
   } catch (error) {
     if (error?.code !== 404) throw error;
-    await databases.createCollection(databaseId, collectionId, name, documentSecurity, []);
+    await databases.createCollection(databaseId, collectionId, name, permissions, documentSecurity);
     console.log(`➕ Created collection '${collectionId}'`);
   }
 }
@@ -135,7 +135,18 @@ async function ensurePersonalCollection() {
 
 async function ensureCommunityCollection() {
   const { databaseId, communityCollectionId } = defaults;
-  await ensureCollection(databaseId, communityCollectionId, 'Community Modules', true);
+  
+  // Collection-level permissions: alpha and admin can read, only admin can create/update/delete
+  const communityPermissions = [
+    Permission.read(Role.label('alpha')),
+    Permission.read(Role.label('admin')),
+    Permission.create(Role.label('alpha')),
+    Permission.create(Role.label('admin')),
+    Permission.update(Role.label('admin')),
+    Permission.delete(Role.label('admin')),
+  ];
+  
+  await ensureCollection(databaseId, communityCollectionId, 'Community Modules', true, communityPermissions);
 
   await ensureStringAttribute(databaseId, communityCollectionId, 'name', 255, true);
   await ensureStringAttribute(databaseId, communityCollectionId, 'vendor', 100, false);
