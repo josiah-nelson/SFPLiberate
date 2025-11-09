@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { isAppwrite } from '@/lib/features';
+import { isAppwrite } from '@/lib/features-client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Search, Plus, Download, Info } from 'lucide-react';

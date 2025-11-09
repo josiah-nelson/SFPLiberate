@@ -9,7 +9,7 @@
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { BleProxySettings } from '@/components/ble/BleProxySettings';
 import { useAuthContext } from '@/components/providers/AuthProvider';
-import { isAuthEnabled } from '@/lib/features';
+import { isAuthEnabled } from '@/lib/features-client';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';

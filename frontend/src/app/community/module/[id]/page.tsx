@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { isAppwrite } from '@/lib/features';
+import { isAppwrite } from '@/lib/features-client';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Download, ArrowLeft, Image as ImageIcon, CheckCircle2, AlertCircle } from 'lucide-react';
