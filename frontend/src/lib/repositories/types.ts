@@ -32,6 +32,12 @@ export interface Module {
 
   /** Creation timestamp */
   created_at: string;
+
+  /** Whether this module was read from user's device (true) or saved from community (false) */
+  read_from_device?: boolean;
+
+  /** Reference to community module if this is a favorite */
+  community_module_ref?: string;
 }
 
 /**
@@ -55,6 +61,12 @@ export interface CreateModuleData {
 
   /** Pre-calculated SHA-256 hash (optional, will be calculated if not provided) */
   sha256?: string;
+
+  /** Whether this module was read from device (true) or is a community favorite (false) */
+  read_from_device?: boolean;
+
+  /** Community module ID if saving as favorite */
+  community_module_ref?: string;
 }
 
 /**
@@ -121,4 +133,14 @@ export interface ModuleRepository {
    * @throws Error if module not found or deletion fails
    */
   deleteModule(id: string): Promise<void>;
+
+  /**
+   * Save a community module as a favorite (Appwrite only)
+   *
+   * @param communityModuleId - Community module ID
+   * @param customName - Optional custom name (defaults to community module name)
+   * @returns Created user module (references community blob)
+   * @throws Error if community module not found or save fails
+   */
+  favoriteModule?(communityModuleId: string, customName?: string): Promise<Module>;
 }

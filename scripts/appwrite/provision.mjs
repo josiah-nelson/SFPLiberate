@@ -126,6 +126,8 @@ async function ensurePersonalCollection() {
   await ensureStringAttribute(databaseId, personalCollectionId, 'sha256', 64, true);
   await ensureStringAttribute(databaseId, personalCollectionId, 'eeprom_file_id', 64, true);
   await ensureIntegerAttribute(databaseId, personalCollectionId, 'size', true);
+  await ensureBooleanAttribute(databaseId, personalCollectionId, 'read_from_device', false);
+  await ensureStringAttribute(databaseId, personalCollectionId, 'community_module_ref', 64, false);
 
   await ensureIndex(databaseId, personalCollectionId, 'idx_sha256', 'unique', ['sha256']);
   await ensureIndex(databaseId, personalCollectionId, 'idx_created', 'key', ['$createdAt'], ['DESC']);
@@ -143,6 +145,8 @@ async function ensureCommunityCollection() {
   await ensureStringAttribute(databaseId, communityCollectionId, 'blobId', 64, true);
   await ensureStringAttribute(databaseId, communityCollectionId, 'photoId', 64, false);
   await ensureStringAttribute(databaseId, communityCollectionId, 'submittedBy', 64, false);
+  await ensureStringAttribute(databaseId, communityCollectionId, 'parent_user_module_id', 64, false);
+  await ensureStringAttribute(databaseId, communityCollectionId, 'device_timestamp', 64, false);
   await ensureStringAttribute(databaseId, communityCollectionId, 'linkType', 32, false);
   await ensureIntegerAttribute(databaseId, communityCollectionId, 'size', true);
   await ensureIntegerAttribute(databaseId, communityCollectionId, 'downloads', false);
