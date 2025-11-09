@@ -58,7 +58,8 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
   // Realtime updates in Appwrite mode
   useEffect(() => {
     if (!isAppwrite()) return;
-    let subscription: any;
+    type RealtimeSubscription = import('appwrite').RealtimeSubscription;
+    let subscription: RealtimeSubscription | undefined;
     (async () => {
       try {
         const { Realtime } = await import('appwrite');
@@ -90,10 +91,7 @@ export function ModulesTable({ initialData }: ModulesTableProps) {
       }
     })();
     return () => {
-      try {
-        if (subscription?.unsubscribe) subscription.unsubscribe();
-        else if (subscription?.close) subscription.close();
-      } catch {}
+      try { subscription?.unsubscribe(); } catch {}
     };
   }, []);
 
