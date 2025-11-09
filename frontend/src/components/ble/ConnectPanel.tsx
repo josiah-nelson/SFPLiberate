@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isIOS, isSafari, isWebBluetoothAvailable } from '@/lib/ble/webbluetooth';
 import { toast } from 'sonner';
 import { detectBluetoothSupport } from '@/lib/ble/support';
+import { isStandalone } from '@/lib/features';
 
 // Server snapshot that returns stable initial state
 const getServerSnapshot = () => ({
@@ -68,6 +69,12 @@ export function ConnectPanel() {
     };
 
     const checkEsphomeStatus = async () => {
+      // ESPHome API only available in standalone/HA modes
+      if (!isStandalone()) {
+        setEsphomeEnabled(false);
+        return;
+      }
+
       try {
         const res = await fetch('/api/v1/esphome/status');
         const data = await res.json();
@@ -159,6 +166,12 @@ export function ConnectPanel() {
   };
 
   const onLoadDefaultProfile = async () => {
+    // Config API only available in standalone/HA modes
+    if (!isStandalone()) {
+      toast.error('Default profile loading only available in standalone/HA mode');
+      return;
+    }
+
     try {
       const res = await fetch('/api/v1/config');
       const cfg = await res.json();
