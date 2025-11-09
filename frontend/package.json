@@ -12,7 +12,7 @@
         "dev": "next dev --turbopack",
         "build": "next build --turbopack",
         "postbuild": "if [ -d .next/standalone ]; then cp -r .next/static .next/standalone/.next/static && if [ -d public ]; then cp -r public .next/standalone/public; fi; fi",
-        "start": "node .next/standalone/server.js",
+        "start": "if [ -f .next/standalone/server.js ]; then node .next/standalone/server.js; else next start; fi",
         "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
         "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
         "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
