@@ -101,14 +101,14 @@ async function ensureBucket(bucketId, name, options = {}) {
     console.log(`✓ Bucket '${bucketId}' exists`);
   } catch (error) {
     if (error?.code !== 404) throw error;
-    const permissions = options.permissions || [];
-    const fileSecurity = options.fileSecurity !== undefined ? options.fileSecurity : true;
-    const enabled = options.enabled !== undefined ? options.enabled : true;
-    const maximumFileSize = options.maximumFileSize || 262144;
-    const allowedFileExtensions = options.allowedFileExtensions || ['bin'];
-    const compression = options.compression || 'none';
-    const encryption = options.encryption !== undefined ? options.encryption : true;
-    const antivirus = options.antivirus !== undefined ? options.antivirus : true;
+    const permissions = options.permissions ?? [];
+    const fileSecurity = options.fileSecurity ?? true;
+    const enabled = options.enabled ?? true;
+    const maximumFileSize = options.maximumFileSize ?? 262144;
+    const allowedFileExtensions = options.allowedFileExtensions ?? ['bin'];
+    const compression = options.compression ?? 'none';
+    const encryption = options.encryption ?? true;
+    const antivirus = options.antivirus ?? true;
     
     await storage.createBucket(
       bucketId,
