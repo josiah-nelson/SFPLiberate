@@ -16,12 +16,10 @@ export type DeploymentMode = 'standalone' | 'appwrite';
  *
  * Checks multiple sources in order of precedence:
  * 1. APPWRITE_SITE_API_ENDPOINT (auto-injected by Appwrite Sites)
- * 2. APPWRITE_FUNCTION_API_ENDPOINT (auto-injected by Appwrite Functions)
- * 3. APPWRITE_ENDPOINT (custom env var)
+ * 2. APPWRITE_ENDPOINT (custom env var)
  */
 export function getAppwriteEndpoint(): string | undefined {
   return process.env.APPWRITE_SITE_API_ENDPOINT ||
-         process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
          process.env.APPWRITE_ENDPOINT;
 }
 
@@ -30,12 +28,10 @@ export function getAppwriteEndpoint(): string | undefined {
  *
  * Checks multiple sources in order of precedence:
  * 1. APPWRITE_SITE_PROJECT_ID (auto-injected by Appwrite Sites)
- * 2. APPWRITE_FUNCTION_PROJECT_ID (auto-injected by Appwrite Functions)
- * 3. APPWRITE_PROJECT_ID (custom env var)
+ * 2. APPWRITE_PROJECT_ID (custom env var)
  */
 export function getAppwriteProjectId(): string | undefined {
   return process.env.APPWRITE_SITE_PROJECT_ID ||
-         process.env.APPWRITE_FUNCTION_PROJECT_ID ||
          process.env.APPWRITE_PROJECT_ID;
 }
 
@@ -50,8 +46,6 @@ export function getDeploymentMode(): DeploymentMode {
   const hasAppwriteVars = !!(
     process.env.APPWRITE_SITE_API_ENDPOINT ||
     process.env.APPWRITE_SITE_PROJECT_ID ||
-    process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
-    process.env.APPWRITE_FUNCTION_PROJECT_ID ||
     process.env.APPWRITE_ENDPOINT ||
     process.env.APPWRITE_PROJECT_ID
   );
@@ -122,14 +116,12 @@ export function isCommunityFeaturesEnabled(): boolean {
 }
 
 /**
- * Get API base URL - unified across all deployment modes
+ * Get API base URL - for standalone/HA modes only
  *
- * All modes use /api/* which is rewritten in next.config.ts:
+ * Standalone/HA modes use /api/* which is rewritten in next.config.ts:
  * - Standalone: /api/* → http://backend:80/api/*
  * - Home Assistant: /api/* → http://localhost:80/api/*
- * - Appwrite: /api/* → https://api.sfplib.com/api/*
- *
- * This unified pattern eliminates code divergence between modes.
+ * - Appwrite: Uses native Appwrite SDK (no API rewrites)
  */
 export function getApiUrl(): string {
   return '/api';
@@ -177,10 +169,10 @@ export function validateEnvironment(): {
   // Validate Appwrite configuration (only if in Appwrite mode)
   if (mode === 'appwrite') {
     if (!getAppwriteEndpoint()) {
-      errors.push('APPWRITE_SITE_API_ENDPOINT, APPWRITE_FUNCTION_API_ENDPOINT, or APPWRITE_ENDPOINT is missing');
+      errors.push('APPWRITE_SITE_API_ENDPOINT or APPWRITE_ENDPOINT is missing');
     }
     if (!getAppwriteProjectId()) {
-      errors.push('APPWRITE_SITE_PROJECT_ID, APPWRITE_FUNCTION_PROJECT_ID, or APPWRITE_PROJECT_ID is missing');
+      errors.push('APPWRITE_SITE_PROJECT_ID or APPWRITE_PROJECT_ID is missing');
     }
     // API URL is always /api (unified pattern), no validation needed
   }

@@ -15,23 +15,19 @@ const withBundleAnalyzer = initializeBundleAnalyzer({
  * Supports three deployment modes (all using SSR + unified API pattern):
  * 1. standalone: Docker deployment with API proxy to FastAPI + SQLite
  * 2. homeassistant: Home Assistant add-on with ingress and API proxy
- * 3. appwrite: Appwrite Sites (SSR) with API proxy to Appwrite Functions
+ * 3. appwrite: Appwrite Sites (SSR) with native Appwrite SDK (no backend API)
  *
  * Deployment mode is automatically detected:
- * - Appwrite Sites: Presence of APPWRITE_FUNCTION_* or APPWRITE_* variables
+ * - Appwrite Sites: Presence of APPWRITE_SITE_* or APPWRITE_* variables
  * - Home Assistant: DEPLOYMENT_MODE=homeassistant
  * - Standalone: Default (Docker deployment)
  *
- * All modes use the same architecture:
- * - Frontend: Next.js SSR (standalone output)
- * - API Pattern: /api/* rewrites to backend
- * - Zero code divergence between modes
+ * Standalone/HA modes use REST API pattern via /api/* rewrites.
+ * Appwrite mode uses native Appwrite SDK (no backend API needed).
  */
 const isAppwriteSite = !!(
     process.env.APPWRITE_SITE_API_ENDPOINT ||
     process.env.APPWRITE_SITE_PROJECT_ID ||
-    process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
-    process.env.APPWRITE_FUNCTION_PROJECT_ID ||
     process.env.APPWRITE_ENDPOINT ||
     process.env.APPWRITE_PROJECT_ID
 );
@@ -66,18 +62,20 @@ const nextConfig: NextConfig = {
         },
     },
 
-    // Rewrites for ALL modes (unified API pattern)
-    // All modes proxy /api/* to their respective backends
+    // Rewrites for standalone/HA modes only (Appwrite uses native SDK)
+    // Standalone/HA modes proxy /api/* to their respective backends
     async rewrites() {
+        // Appwrite mode doesn't need API rewrites (uses native SDK)
+        if (isAppwrite) {
+            return [];
+        }
+
         // Determine backend URL based on deployment mode
         let backendUrl: string;
 
         if (isHomeAssistant) {
             // HA add-on: backend runs on localhost:80
             backendUrl = 'http://localhost:80';
-        } else if (isAppwrite) {
-            // Appwrite: backend is an Appwrite Function (custom domain or auto URL)
-            backendUrl = process.env.BACKEND_URL || 'https://api.sfplib.com';
         } else {
             // Standalone: backend is Docker service on bridge network
             backendUrl = process.env.BACKEND_URL || 'http://backend:80';
