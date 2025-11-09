@@ -41,6 +41,23 @@ interface UserModuleDocument extends AppwriteDocument {
   sha256: string;
   eeprom_file_id: string;
   size: number;
+  read_from_device?: boolean;
+  community_module_ref?: string;
+}
+
+interface CommunityModuleDocument extends AppwriteDocument {
+  name: string;
+  vendor?: string;
+  model?: string;
+  serial?: string;
+  sha256: string;
+  blobId: string;
+  size: number;
+  parent_user_module_id?: string;
+  device_timestamp?: string;
+  submittedBy?: string;
+  verified?: boolean;
+  downloads?: number;
 }
 
 // Service singletons
@@ -155,7 +172,40 @@ function handleAppwriteError(error: any, context: string): never {
 // Appwrite configuration
 const DATABASE_ID = appwriteResourceIds.databaseId;
 const USER_MODULES_COLLECTION_ID = appwriteResourceIds.userModulesCollectionId;
+const COMMUNITY_MODULES_COLLECTION_ID = appwriteResourceIds.communityModulesCollectionId;
 const USER_EEPROM_BUCKET_ID = appwriteResourceIds.userModulesBucketId;
+const COMMUNITY_BLOBS_BUCKET_ID = appwriteResourceIds.communityBlobBucketId;
+
+/**
+ * Generate filename for community blob with timestamp, serial, and parent ID
+ */
+function generateCommunityBlobFilename(
+  vendor: string,
+  model: string,
+  serial: string,
+  parentId: string,
+  sha256: string
+): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const sanitized = {
+    vendor: vendor?.replace(/[^a-zA-Z0-9]/g, '_') || 'unknown',
+    model: model?.replace(/[^a-zA-Z0-9]/g, '_') || 'unknown',
+    serial: serial?.replace(/[^a-zA-Z0-9]/g, '_') || 'unknown',
+  };
+  return `${sanitized.vendor}_${sanitized.model}_${sanitized.serial}_${timestamp}_${parentId.substring(0, 8)}_${sha256.substring(0, 8)}.bin`;
+}
+
+/**
+ * Get community permissions (alpha/admin can read, only admin can edit)
+ */
+function getCommunityPermissions(Permission: AppwritePermission, Role: AppwriteRole) {
+  return [
+    Permission.read(Role.label('alpha')),
+    Permission.read(Role.label('admin')),
+    Permission.update(Role.label('admin')),
+    Permission.delete(Role.label('admin')),
+  ];
+}
 
 /**
  * Improved Appwrite repository with best practices
@@ -188,9 +238,105 @@ export class AppwriteRepository implements ModuleRepository {
         sha256: doc.sha256,
         size: doc.size,
         created_at: doc.$createdAt,
+        read_from_device: doc.read_from_device,
+        community_module_ref: doc.community_module_ref,
       }));
     } catch (error) {
       handleAppwriteError(error, 'List modules');
+    }
+  }
+
+  /**
+   * Private helper: Submit module to community database
+   */
+  private async submitToCommunityDatabase(params: {
+    userModuleId: string;
+    name: string;
+    vendor?: string;
+    model?: string;
+    serial?: string;
+    sha256: string;
+    eepromData: ArrayBuffer;
+    size: number;
+    userId: string;
+  }): Promise<void> {
+    try {
+      const { databases, storage, Query, ID, Permission, Role } = await getServices();
+
+      // Check if community module already exists (by vendor+model, not SHA256)
+      const vendor = params.vendor || 'unknown';
+      const model = params.model || 'unknown';
+      
+      const existingCommunityMods = await databases.listDocuments<CommunityModuleDocument>(
+        DATABASE_ID,
+        COMMUNITY_MODULES_COLLECTION_ID,
+        [
+          Query.equal('vendor', vendor),
+          Query.equal('model', model),
+          Query.limit(1),
+        ]
+      );
+
+      const timestamp = new Date().toISOString();
+      const communityPermissions = getCommunityPermissions(Permission, Role);
+
+      if (existingCommunityMods.documents.length > 0) {
+        // Module exists - just log this submission as metadata (duplicate)
+        const existingDoc = existingCommunityMods.documents[0];
+        console.log(`Community module already exists: ${existingDoc.$id}. Logging duplicate submission.`);
+        
+        // TODO: In future, store duplicate submission metadata
+        // For now, just increment downloads counter or store in a log collection
+        return;
+      }
+
+      // Create new community module with timestamped blob
+      const filename = generateCommunityBlobFilename(
+        vendor,
+        params.model || 'unknown',
+        params.serial || 'unknown',
+        params.userModuleId,
+        params.sha256
+      );
+
+      const blobFile = new File([params.eepromData], filename, {
+        type: 'application/octet-stream',
+      });
+
+      // Upload blob to community bucket
+      const blobUpload = await storage.createFile(
+        COMMUNITY_BLOBS_BUCKET_ID,
+        ID.unique(),
+        blobFile,
+        communityPermissions
+      );
+
+      // Create community document
+      await databases.createDocument<CommunityModuleDocument>(
+        DATABASE_ID,
+        COMMUNITY_MODULES_COLLECTION_ID,
+        ID.unique(),
+        {
+          name: params.name,
+          vendor: params.vendor,
+          model: params.model,
+          serial: params.serial,
+          sha256: params.sha256,
+          blobId: blobUpload.$id,
+          size: params.size,
+          parent_user_module_id: params.userModuleId,
+          device_timestamp: timestamp,
+          submittedBy: params.userId,
+          verified: false,
+          downloads: 0,
+        },
+        communityPermissions
+      );
+
+      console.log(`Submitted to community database: ${vendor} ${model}`);
+    } catch (error) {
+      // Log but don't fail the user module creation
+      console.error('Failed to submit to community database:', error);
     }
   }
 
@@ -284,10 +430,27 @@ export class AppwriteRepository implements ModuleRepository {
               sha256,
               eeprom_file_id: fileUpload!.$id,
               size: data.eepromData.byteLength,
+              read_from_device: data.read_from_device ?? true, // Default to true (device read)
+              community_module_ref: data.community_module_ref || undefined,
             },
             permissions
           )
         );
+
+        // If this was read from device, also submit to community database
+        if (data.read_from_device !== false) {
+          await this.submitToCommunityDatabase({
+            userModuleId: doc.$id,
+            name: sanitized.name,
+            vendor: sanitized.vendor,
+            model: sanitized.model,
+            serial: sanitized.serial,
+            sha256,
+            eepromData: data.eepromData,
+            size: data.eepromData.byteLength,
+            userId,
+          });
+        }
 
         return {
           module: {
@@ -299,6 +462,8 @@ export class AppwriteRepository implements ModuleRepository {
             sha256: doc.sha256,
             size: doc.size,
             created_at: doc.$createdAt,
+            read_from_device: doc.read_from_device,
+            community_module_ref: doc.community_module_ref,
           },
           isDuplicate: false,
           message: `Module '${data.name}' saved successfully.`,
@@ -340,6 +505,8 @@ export class AppwriteRepository implements ModuleRepository {
         sha256: doc.sha256,
         size: doc.size,
         created_at: doc.$createdAt,
+        read_from_device: doc.read_from_device,
+        community_module_ref: doc.community_module_ref,
       };
     } catch (error) {
       handleAppwriteError(error, 'Get module');
@@ -413,6 +580,66 @@ export class AppwriteRepository implements ModuleRepository {
       }
     } catch (error) {
       handleAppwriteError(error, 'Delete module');
+    }
+  }
+
+  /**
+   * Save a community module as a favorite (reference only, no blob upload)
+   */
+  async favoriteModule(communityModuleId: string, customName?: string): Promise<Module> {
+    try {
+      const { databases, ID, Permission, Role } = await getServices();
+      const userId = await getCurrentUserId();
+
+      // Fetch community module to get its metadata and blob reference
+      const communityMod = await databases.getDocument<CommunityModuleDocument>(
+        DATABASE_ID,
+        COMMUNITY_MODULES_COLLECTION_ID,
+        communityModuleId
+      );
+
+      // Define permissions for this user only
+      const permissions = [
+        Permission.read(Role.user(userId)),
+        Permission.update(Role.user(userId)),
+        Permission.delete(Role.user(userId)),
+      ];
+
+      // Create user-module document that references the community blob
+      const doc = await retryWithBackoff(() =>
+        databases.createDocument<UserModuleDocument>(
+          DATABASE_ID,
+          USER_MODULES_COLLECTION_ID,
+          ID.unique(),
+          {
+            name: customName || communityMod.name,
+            vendor: communityMod.vendor,
+            model: communityMod.model,
+            serial: communityMod.serial,
+            sha256: communityMod.sha256,
+            eeprom_file_id: communityMod.blobId, // Reference community blob
+            size: communityMod.size,
+            read_from_device: false, // This is a favorite, not a device read
+            community_module_ref: communityModuleId,
+          },
+          permissions
+        )
+      );
+
+      return {
+        id: doc.$id,
+        name: doc.name,
+        vendor: doc.vendor,
+        model: doc.model,
+        serial: doc.serial,
+        sha256: doc.sha256,
+        size: doc.size,
+        created_at: doc.$createdAt,
+        read_from_device: doc.read_from_device,
+        community_module_ref: doc.community_module_ref,
+      };
+    } catch (error) {
+      handleAppwriteError(error, 'Favorite module');
     }
   }
 }

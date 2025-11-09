@@ -16,6 +16,7 @@ import type { ConnectionMode, ResolvedMode, SfpProfile } from './types';
 import { connectDirect, isWebBluetoothAvailable, startNotifications, writeChunks, writeText } from './webbluetooth';
 import { ESPHomeAdapter } from '@/lib/esphome/websocketAdapter';
 import { getModuleRepository } from '@/lib/repositories';
+import { calculateSHA256 } from '@/lib/sfp/parser';
 
 const TESTED_FIRMWARE_VERSION = '1.0.10';
 
@@ -567,14 +568,35 @@ export async function writeSfpFromModuleId(moduleId: string) {
   try {
     const repository = getModuleRepository();
 
-    // 1. Fetch binary EEPROM using repository
+    // 1. Fetch module metadata to get expected hash
+    const module = await repository.getModule(moduleId);
+    const expectedHash = module.sha256;
+    
+    if (!expectedHash) {
+      throw new Error('Module does not have a SHA-256 hash. Cannot verify data integrity.');
+    }
+
+    // 2. Fetch binary EEPROM using repository
     const buf = await repository.getEEPROMData(moduleId);
     logLine(`Retrieved ${buf.byteLength} bytes of EEPROM data.`);
 
-    // 2. Initiate write
+    // 3. VERIFY HASH BEFORE WRITING
+    logLine('Verifying data integrity...');
+    const actualHash = await calculateSHA256(buf);
+    
+    if (actualHash !== expectedHash) {
+      throw new Error(
+        `Hash mismatch! Expected ${expectedHash.substring(0, 16)}..., got ${actualHash.substring(0, 16)}.... ` +
+        `Data may be corrupted. Aborting write operation.`
+      );
+    }
+    
+    logLine(`✓ Hash verified: ${actualHash.substring(0, 16)}...`);
+
+    // 4. Initiate write
     await sendBleCommand('[POST] /sif/write');
 
-    // 3. Optional ack wait
+    // 5. Optional ack wait
     try {
       await waitForMessage('SIF write start', 5000);
       logLine('Device ready to receive EEPROM data.');
@@ -582,10 +604,10 @@ export async function writeSfpFromModuleId(moduleId: string) {
       logLine(`Warning: ${e?.message || String(e)}. Proceeding anyway...`);
     }
 
-    // 4. Chunk write
+    // 6. Chunk write
     await writeSfpFromBuffer(buf);
 
-    // 5. Completion ack
+    // 7. Completion ack
     try {
       await Promise.race([
         waitForMessage('SIF write stop', 10000),
