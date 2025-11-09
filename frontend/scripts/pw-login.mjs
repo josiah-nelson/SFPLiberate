@@ -31,8 +31,8 @@ if (!EMAIL || !PASSWORD) {
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
   await page.click('button:has-text("Sign In")');
-
-  await page.waitForTimeout(2000);
+  // Wait for navigation to home after login instead of fixed timeout
+  await page.waitForURL(`${BASE_URL}/`);
 
   // Check cookies for session
   const cookies = await ctx.cookies();
