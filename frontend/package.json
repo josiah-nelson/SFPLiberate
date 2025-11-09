@@ -11,7 +11,7 @@
     "scripts": {
         "dev": "next dev --turbopack",
         "build": "next build --turbopack",
-        "postbuild": "cp -r .next/static .next/standalone/.next/static && if [ -d public ]; then cp -r public .next/standalone/public; fi",
+        "postbuild": "if [ -d .next/standalone ]; then cp -r .next/static .next/standalone/.next/static && if [ -d public ]; then cp -r public .next/standalone/public; fi; fi",
         "start": "node .next/standalone/server.js",
         "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
         "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
