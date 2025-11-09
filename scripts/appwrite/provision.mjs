@@ -38,13 +38,13 @@ async function ensureDatabase(databaseId, name) {
   }
 }
 
-async function ensureCollection(databaseId, collectionId, name, documentSecurity = true) {
+async function ensureCollection(databaseId, collectionId, name, documentSecurity = true, permissions = []) {
   try {
     await databases.getCollection(databaseId, collectionId);
     console.log(`✓ Collection '${collectionId}' exists`);
   } catch (error) {
     if (error?.code !== 404) throw error;
-    await databases.createCollection(databaseId, collectionId, name, documentSecurity, []);
+    await databases.createCollection(databaseId, collectionId, name, permissions, documentSecurity);
     console.log(`➕ Created collection '${collectionId}'`);
   }
 }
@@ -101,16 +101,27 @@ async function ensureBucket(bucketId, name, options = {}) {
     console.log(`✓ Bucket '${bucketId}' exists`);
   } catch (error) {
     if (error?.code !== 404) throw error;
-    await storage.createBucket(bucketId, name, [], {
-      enabled: true,
-      fileSecurity: true,
-      maximumFileSize: 262144,
-      allowedFileExtensions: ['bin'],
-      compression: 'none',
-      encryption: true,
-      antivirus: true,
-      ...options,
-    });
+    const permissions = options.permissions || [];
+    const fileSecurity = options.fileSecurity !== undefined ? options.fileSecurity : true;
+    const enabled = options.enabled !== undefined ? options.enabled : true;
+    const maximumFileSize = options.maximumFileSize || 262144;
+    const allowedFileExtensions = options.allowedFileExtensions || ['bin'];
+    const compression = options.compression || 'none';
+    const encryption = options.encryption !== undefined ? options.encryption : true;
+    const antivirus = options.antivirus !== undefined ? options.antivirus : true;
+    
+    await storage.createBucket(
+      bucketId,
+      name,
+      permissions,
+      fileSecurity,
+      enabled,
+      maximumFileSize,
+      allowedFileExtensions,
+      compression,
+      encryption,
+      antivirus
+    );
     console.log(`➕ Created bucket '${bucketId}'`);
   }
 }
@@ -159,14 +170,32 @@ async function main() {
   await ensurePersonalCollection();
   await ensureCommunityCollection();
 
+  // User bucket - private, file security enabled
   await ensureBucket(userBucketId, 'User EEPROM Data', {
     allowedFileExtensions: ['bin'],
+    fileSecurity: true,
+    maximumFileSize: 262144,
+    encryption: true,
+    permissions: [],
   });
+  
+  // Community blob bucket - public reads, file security disabled
   await ensureBucket(blobBucketId, 'Community EEPROM Blobs', {
     allowedFileExtensions: ['bin'],
+    fileSecurity: false,
+    maximumFileSize: 262144,
+    encryption: true,
+    permissions: ['read("any")'],
   });
+  
+  // Community photo bucket - public reads, file security disabled
   await ensureBucket(photoBucketId, 'Community Module Photos', {
     allowedFileExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+    fileSecurity: false,
+    maximumFileSize: 5242880, // 5 MB
+    compression: 'gzip',
+    encryption: false,
+    permissions: ['read("any")'],
   });
 
   console.log('✅ Appwrite resources are provisioned.');
