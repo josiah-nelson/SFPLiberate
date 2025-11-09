@@ -101,23 +101,37 @@ async function ensureBucket(bucketId, name, options = {}) {
     console.log(`✓ Bucket '${bucketId}' exists`);
   } catch (error) {
     if (error?.code !== 404) throw error;
-    await storage.createBucket(bucketId, name, [], {
-      enabled: true,
-      fileSecurity: true,
-      maximumFileSize: 262144,
-      allowedFileExtensions: ['bin'],
-      compression: 'none',
-      encryption: true,
-      antivirus: true,
-      ...options,
-    });
+    const permissions = options.permissions || [];
+    const fileSecurity = options.fileSecurity !== undefined ? options.fileSecurity : true;
+    const enabled = options.enabled !== undefined ? options.enabled : true;
+    const maximumFileSize = options.maximumFileSize || 262144;
+    const allowedFileExtensions = options.allowedFileExtensions || ['bin'];
+    const compression = options.compression || 'none';
+    const encryption = options.encryption !== undefined ? options.encryption : true;
+    const antivirus = options.antivirus !== undefined ? options.antivirus : true;
+    
+    await storage.createBucket(
+      bucketId,
+      name,
+      permissions,
+      fileSecurity,
+      enabled,
+      maximumFileSize,
+      allowedFileExtensions,
+      compression,
+      encryption,
+      antivirus
+    );
     console.log(`➕ Created bucket '${bucketId}'`);
   }
 }
 
 async function ensurePersonalCollection() {
   const { databaseId, personalCollectionId } = defaults;
-  await ensureCollection(databaseId, personalCollectionId, 'User Modules', true);
+  
+  // Collection-level permissions: No permissions needed (document security handles per-user access)
+  // Documents will have user-specific permissions set at creation time
+  await ensureCollection(databaseId, personalCollectionId, 'User Modules', true, []);
 
   await ensureStringAttribute(databaseId, personalCollectionId, 'name', 255, true);
   await ensureStringAttribute(databaseId, personalCollectionId, 'vendor', 100, false);
@@ -174,14 +188,38 @@ async function main() {
   await ensurePersonalCollection();
   await ensureCommunityCollection();
 
+  // User bucket - private, file security enabled (document-level permissions set at creation)
   await ensureBucket(userBucketId, 'User EEPROM Data', {
     allowedFileExtensions: ['bin'],
+    fileSecurity: true,
+    maximumFileSize: 262144,
+    encryption: true,
+    permissions: [], // No bucket-level permissions (file-level permissions set at upload)
   });
+  
+  // Community blob bucket - public reads for alpha/admin, file security disabled
   await ensureBucket(blobBucketId, 'Community EEPROM Blobs', {
     allowedFileExtensions: ['bin'],
+    fileSecurity: false, // Bucket-level permissions (no per-file permissions)
+    maximumFileSize: 262144,
+    encryption: true,
+    permissions: [
+      Permission.read(Role.label('alpha')),
+      Permission.read(Role.label('admin')),
+    ],
   });
+  
+  // Community photo bucket - public reads for alpha/admin, file security disabled
   await ensureBucket(photoBucketId, 'Community Module Photos', {
     allowedFileExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+    fileSecurity: false, // Bucket-level permissions (no per-file permissions)
+    maximumFileSize: 5242880, // 5 MB
+    compression: 'gzip',
+    encryption: false, // Photos don't need encryption (better performance)
+    permissions: [
+      Permission.read(Role.label('alpha')),
+      Permission.read(Role.label('admin')),
+    ],
   });
 
   console.log('✅ Appwrite resources are provisioned.');
