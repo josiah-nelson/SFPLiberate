@@ -55,8 +55,7 @@ options:
 schema:
   log_level: list(debug|info|warning|error)
   auto_discover: bool
-  device_name_patterns: 
-    - str
+  device_name_patterns: list(str)
   connection_timeout: int(10,120)
   device_expiry_seconds: int(60,3600)
   scan_interval: int(1,60)
