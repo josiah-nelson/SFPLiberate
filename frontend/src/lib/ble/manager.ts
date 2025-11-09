@@ -569,8 +569,8 @@ export async function writeSfpFromModuleId(moduleId: string) {
     const repository = getModuleRepository();
 
     // 1. Fetch module metadata to get expected hash
-    const module = await repository.getModule(moduleId);
-    const expectedHash = module.sha256;
+    const moduleData = await repository.getModule(moduleId);
+    const expectedHash = moduleData.sha256;
     
     if (!expectedHash) {
       throw new Error('Module does not have a SHA-256 hash. Cannot verify data integrity.');

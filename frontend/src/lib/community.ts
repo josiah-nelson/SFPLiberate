@@ -5,7 +5,7 @@
  * SFP module profiles. Only available in Appwrite deployment mode.
  */
 
-import { getAppwriteClient, getUserRole } from './auth';
+import { getAppwriteClient } from './auth';
 import { isAppwrite } from './features';
 import { appwriteResourceIds } from './appwrite/config';
 import { calculateSHA256 } from './sfp/parser';
@@ -132,17 +132,14 @@ export interface ModuleSubmission {
 }
 
 /**
- * List all community modules (alpha/admin only)
+ * List all community modules
+ * 
+ * Note: Access control is enforced via collection-level permissions in Appwrite.
+ * Collection should have read permissions set to Role.label('alpha') and Role.label('admin').
  */
 export async function listCommunityModules(): Promise<CommunityModule[]> {
     if (!isAppwrite()) {
         throw new Error('Community features are only available in Appwrite deployment mode');
-    }
-
-    // Check user role
-    const userRole = await getUserRole();
-    if (userRole !== 'alpha' && userRole !== 'admin') {
-        throw new Error('Community features are currently in alpha. Access restricted to alpha testers.');
     }
 
     try {
