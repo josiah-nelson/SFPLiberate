@@ -1,0 +1,41 @@
+{
+  "$schema": "https://appwrite.io/schemas/appwrite.json",
+  "projectId": "${APPWRITE_PROJECT_ID}",
+  "endpoint": "${APPWRITE_ENDPOINT}",
+  "projectName": "SFPLiberate",
+  "settings": {
+    "services": {
+      "account": true,
+      "avatars": true,
+      "databases": true,
+      "locale": true,
+      "health": true,
+      "storage": true,
+      "teams": true,
+      "users": true,
+      "sites": true,
+      "functions": false,
+      "graphql": true,
+      "messaging": true
+    }
+  },
+  "sites": [
+    {
+      "$id": "sfpliberate",
+      "name": "SFPLiberate",
+      "enabled": true,
+      "logging": true,
+      "framework": "nextjs",
+      "timeout": 30,
+      "installCommand": "npm ci --legacy-peer-deps",
+      "buildCommand": "npm run build",
+      "outputDirectory": "./.next/standalone",
+      "specification": "s-4vcpu-4gb",
+      "buildRuntime": "node-22",
+      "adapter": "ssr",
+      "fallbackFile": "",
+      "path": "sites/SFPLiberate"
+    }
+  ]
+}
+
