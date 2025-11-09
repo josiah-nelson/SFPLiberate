@@ -63,25 +63,23 @@ const nextConfig: NextConfig = {
     },
 
     // Rewrites for standalone/HA modes only (Appwrite uses native SDK)
-    // Standalone/HA modes proxy /api/* to their respective backends
+    // Returns undefined for Appwrite mode (no rewrites configuration)
     async rewrites() {
+        // Log deployment mode for debugging
+        console.log(`[Next.js Config] Deployment mode: ${deploymentMode}`);
+        console.log(`[Next.js Config] Appwrite detection - SITE_API: ${!!process.env.APPWRITE_SITE_API_ENDPOINT}, SITE_PROJECT: ${!!process.env.APPWRITE_SITE_PROJECT_ID}, ENDPOINT: ${!!process.env.APPWRITE_ENDPOINT}, PROJECT: ${!!process.env.APPWRITE_PROJECT_ID}`);
+        
         // Appwrite mode doesn't need API rewrites (uses native SDK)
         if (isAppwrite) {
+            console.log(`[Next.js Config] Appwrite mode - returning empty rewrites`);
             return [];
         }
 
         // Determine backend URL based on deployment mode
-        let backendUrl: string;
+        const backendUrl = isHomeAssistant
+            ? 'http://localhost:80'  // HA add-on
+            : (process.env.BACKEND_URL || 'http://backend:80');  // Standalone
 
-        if (isHomeAssistant) {
-            // HA add-on: backend runs on localhost:80
-            backendUrl = 'http://localhost:80';
-        } else {
-            // Standalone: backend is Docker service on bridge network
-            backendUrl = process.env.BACKEND_URL || 'http://backend:80';
-        }
-
-        console.log(`[Next.js Config] Deployment mode: ${deploymentMode}`);
         console.log(`[Next.js Config] Backend URL: ${backendUrl}`);
 
         return [
