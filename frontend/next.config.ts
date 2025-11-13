@@ -25,6 +25,14 @@ const withBundleAnalyzer = initializeBundleAnalyzer({
  * Standalone/HA modes use REST API pattern via /api/* rewrites.
  * Appwrite mode uses native Appwrite SDK (no backend API needed).
  */
+// Debug: Log environment variables during build
+console.log('[next.config.ts] Build-time environment check:');
+console.log('  APPWRITE_SITE_API_ENDPOINT:', process.env.APPWRITE_SITE_API_ENDPOINT || 'NOT SET');
+console.log('  APPWRITE_SITE_PROJECT_ID:', process.env.APPWRITE_SITE_PROJECT_ID || 'NOT SET');
+console.log('  APPWRITE_ENDPOINT:', process.env.APPWRITE_ENDPOINT || 'NOT SET');
+console.log('  APPWRITE_PROJECT_ID:', process.env.APPWRITE_PROJECT_ID || 'NOT SET');
+console.log('  DEPLOYMENT_MODE:', process.env.DEPLOYMENT_MODE || 'NOT SET');
+
 const isAppwriteSite = !!(
     process.env.APPWRITE_SITE_API_ENDPOINT ||
     process.env.APPWRITE_SITE_PROJECT_ID ||
@@ -35,6 +43,9 @@ const deploymentMode = isAppwriteSite ? 'appwrite' : (process.env.DEPLOYMENT_MOD
 const isStandalone = deploymentMode === 'standalone';
 const isHomeAssistant = deploymentMode === 'homeassistant';
 const isAppwrite = deploymentMode === 'appwrite';
+
+console.log('[next.config.ts] Detected deployment mode:', deploymentMode);
+console.log('[next.config.ts] Will use output:', isAppwrite ? 'DEFAULT (no standalone)' : 'standalone');
 
 // Only standalone and HA modes need the appwrite stub (no direct SDK usage)
 const require = createRequire(import.meta.url);
